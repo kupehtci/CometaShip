@@ -164,7 +164,7 @@ void ShipGameLayer::Update() {
         SpawnObstacle();
         _obstacleSpawnTimer = 0.0f;
 
-        _gameSpeed += 0.1f;
+        _gameSpeed += 0.001f;
         _obstacleSpawnInterval = std::max(0.5f, _obstacleSpawnInterval - 0.02f);
     }
 
@@ -203,7 +203,7 @@ void ShipGameLayer::SpawnObstacle() {
     
     float randomX = static_cast<float>(rand() % 10 - 5); // -5 to 5
     Transform* obstacleTransform = obstacle->GetComponent<Transform>();
-    obstacleTransform->position = glm::vec3(randomX, 0.0f, -20.0f);
+    obstacleTransform->position = glm::vec3(randomX, 10.0f, -5.0f);
     
     float scaleX = 0.5f + static_cast<float>(rand() % 100) / 100.0f; // 0.5 to 1.5
     float scaleY = 0.5f + static_cast<float>(rand() % 100) / 100.0f; // 0.5 to 1.5
@@ -213,9 +213,10 @@ void ShipGameLayer::SpawnObstacle() {
     obstacleCollider->SetCollider<BoxCollider>(obstacleTransform->scale);
 
     RigidBody* obstacleRb = obstacle->CreateComponent<RigidBody>();
+    obstacleRb->SetAffectedByGravity(false);
     obstacleRb->SetMass(1.0f);
 
-    obstacleRb->SetLinearVelocity(glm::vec3(0.0f, 0.0f, _gameSpeed));
+    obstacleRb->SetLinearVelocity(glm::vec3(0.0f, -_gameSpeed, 0.0f));
 
     MeshRenderable* obstacleRenderable = obstacle->CreateComponent<MeshRenderable>();
     std::shared_ptr<Material> obstacleMaterial = std::make_shared<Material>(
@@ -275,11 +276,15 @@ void ShipGameLayer::ResetGame() {
     
     if (playerShip) {
         Transform* shipTransform = playerShip->GetComponent<Transform>();
-        shipTransform->position = glm::vec3(0.0f, 0.0f, 0.0f);
-        
+        shipTransform->position = glm::vec3(0.0f, 0.0f, -5.0f); 
+        shipTransform->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+
         RigidBody* shipRb = playerShip->GetComponent<RigidBody>();
         if (shipRb) {
             shipRb->SetLinearVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
+            shipRb->SetAffectedByGravity(false);
+            shipRb->SetMass(1.0f);
+            shipRb->SetAngularVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
         }
     }
 }
