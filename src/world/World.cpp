@@ -53,8 +53,19 @@ bool World::RemoveEntity(const uint32_t& uid)
         COMETA_WARNING("[WORLD] Tried to delete entity that doesnt exist or its not contained in this world");
         return false;
     }
+
+    _componentRegistry.GetStorage<Transform>().Pop(_uid);
+    _componentRegistry.GetStorage<MeshRenderable>().Pop(_uid);
+    _componentRegistry.GetStorage<SpriteRenderable>().Pop(_uid);
+    _componentRegistry.GetStorage<PointLight>().Pop(_uid);
+    _componentRegistry.GetStorage<DirectionalLight>().Pop(_uid);
+    _componentRegistry.GetStorage<ColliderComponent>().Pop(_uid);
+    _componentRegistry.GetStorage<RigidBody>().Pop(_uid);
+    _componentRegistry.GetStorage<Script>().Pop(_uid);
+    _componentRegistry.GetStorage<Tag>().Pop(_uid);
+
     _entities.Pop(uid);
-    // TODO: remains to implement component pop all when entity is deleted
+
     return true;
 }
 

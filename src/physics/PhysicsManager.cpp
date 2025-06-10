@@ -52,7 +52,9 @@ void PhysicsManager::Update(){
         rb.Init();
 
         // Linear Step
-        rb._force += rb._mass * _gravity;
+        // rb._force += rb._mass * _gravity;
+        rb._force += rb.IsAffectedByGravity() ? (rb._mass * _gravity) : glm::vec3(0.0f, 0.0f, 0.0f);
+
         rb._linearVelocity += rb._force / rb._mass * dt;
         rbTransform->position += rb._linearVelocity * dt;
 

@@ -32,7 +32,7 @@ INCLUDES += -Ivendor/imgui -Ivendor/GLFW/include -Ivendor/glm/glm -Ivendor/glad/
 FORCE_INCLUDE +=
 ALL_CPPFLAGS += $(CPPFLAGS) -MD -MP $(DEFINES) $(INCLUDES)
 ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-LINKCMD = $(AR) -rcs "$@" $(OBJECTS)
+LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
 define PREBUILDCMDS
 endef
 define PRELINKCMDS
@@ -42,7 +42,7 @@ endef
 
 ifeq ($(config),debug)
 TARGETDIR = bin/Debug
-TARGET = $(TARGETDIR)/libCometaGL.a
+TARGET = $(TARGETDIR)/CometaGL
 OBJDIR = bin/obj/Debug
 DEFINES += -DPLATFORM_MACOS -DDEBUG
 ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -m64 -g
@@ -53,7 +53,7 @@ ALL_LDFLAGS += $(LDFLAGS) -Lvendor/glad/bin -Lvendor/GLFW/lib_macos_arm -m64
 
 else ifeq ($(config),release)
 TARGETDIR = bin/Release
-TARGET = $(TARGETDIR)/libCometaGL.a
+TARGET = $(TARGETDIR)/CometaGL
 OBJDIR = bin/obj/Release
 DEFINES += -DPLATFORM_MACOS -DNDEBUG
 ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -m64 -O2
@@ -98,6 +98,7 @@ GENERATED += $(OBJDIR)/PhysicsManager.o
 GENERATED += $(OBJDIR)/Renderer.o
 GENERATED += $(OBJDIR)/ScriptSystem.o
 GENERATED += $(OBJDIR)/Shader.o
+GENERATED += $(OBJDIR)/ShipGameLayer.o
 GENERATED += $(OBJDIR)/Texture.o
 GENERATED += $(OBJDIR)/Time.o
 GENERATED += $(OBJDIR)/UILayer.o
@@ -138,6 +139,7 @@ OBJECTS += $(OBJDIR)/PhysicsManager.o
 OBJECTS += $(OBJDIR)/Renderer.o
 OBJECTS += $(OBJDIR)/ScriptSystem.o
 OBJECTS += $(OBJDIR)/Shader.o
+OBJECTS += $(OBJDIR)/ShipGameLayer.o
 OBJECTS += $(OBJDIR)/Texture.o
 OBJECTS += $(OBJDIR)/Time.o
 OBJECTS += $(OBJDIR)/UILayer.o
@@ -242,6 +244,9 @@ $(OBJDIR)/MapsLayer.o: src/layer_system/layers/MapsLayer.cpp
 	@echo "$(notdir $<)"
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/MaterialLayer.o: src/layer_system/layers/MaterialLayer.cpp
+	@echo "$(notdir $<)"
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/ShipGameLayer.o: src/layer_system/layers/ShipGameLayer.cpp
 	@echo "$(notdir $<)"
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/UILayer.o: src/layer_system/layers/UILayer.cpp

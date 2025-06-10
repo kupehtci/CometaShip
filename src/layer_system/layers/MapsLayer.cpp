@@ -91,7 +91,10 @@ void MapsLayer::Init()
     ent0->GetComponent<Transform>()->position = glm::vec3(0.0f, 3.0f, -7.0f);
 
     MeshRenderable* ent0Renderable =  ent0->CreateComponent<MeshRenderable>();
+
     RigidBody* ent0Rb = ent0->CreateComponent<RigidBody>();
+    ent0Rb->SetAffectedByGravity(false);
+
     ColliderComponent* ent0Collider = ent0->CreateComponent<ColliderComponent>();
     ent0Collider->SetCollider<BoxCollider>(glm::vec3(0.5f, 0.5f, 0.5f));
 
@@ -126,34 +129,6 @@ void MapsLayer::Init()
 
     Script* script = ent0->CreateComponent<Script>();
     script->Attach<TestScript>("Hello");
-
-
-
-    // // Set up the Start callback
-    // script->SetStartCallback([]() {
-    //     std::cout << "Script started!" << std::endl;
-    // });
-    //
-    // // Set up the Update callback
-    // script->SetUpdateCallback([](float deltaTime) {
-    //     // Move the entity forward
-    //     // Transform* transform = ent0->GetComponent<Transform>();
-    //     if (Input::IsKeyPressed(GLFW_KEY_O)) {
-    //         std::cout << "Entity position update" << std::endl;
-    //     }
-    // });
-    //
-    // script->SetOnCollisionEnterCallback([](Entity* other) {
-    //     std::cout << "Collision started with entity: " << other->GetName() << std::endl;
-    // });
-    //
-    // script->SetOnCollisionExitCallback([](Entity* other) {
-    //     std::cout << "Collision ended with entity: " << other->GetName() << std::endl;
-    // });
-    //
-    // script->SetOnDestroyCallback([]() {
-    //     std::cout << "Script is being destroyed!" << std::endl;
-    // });
 
     // --------- Other entity same as ent0 ---------
 

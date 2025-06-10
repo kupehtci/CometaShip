@@ -27,7 +27,7 @@ class Renderer;
  * Component virtual class
  */
 class Component {
-private:
+protected:
 	Entity* _owner = nullptr;
 
 public:
@@ -339,6 +339,7 @@ private:
 	glm::mat3 _inverseInertiaTensor = glm::mat3();
 
 	bool _enabled = true;
+	bool _affectedByGravity = true;
 
 public:
 	RigidBody(){
@@ -373,6 +374,9 @@ public:
 	[[nodiscard]] bool& GetEnabledRef() { return _enabled; }
 	void SetEnabled(bool isEnabled) { _enabled = isEnabled; }
 
+	[[nodiscard]] bool IsAffectedByGravity() const { return _affectedByGravity; }
+	void SetAffectedByGravity(bool value) {_affectedByGravity = value;}
+
 	void SetMass(float mass) { _mass = mass; Init(); }
 	void SetLinearVelocity(const glm::vec3& linearVelocity) { _linearVelocity = linearVelocity; }
 	void SetAngularVelocity(const glm::vec3& angularVelocity) { _angularVelocity = angularVelocity; }
@@ -402,119 +406,29 @@ public:
 };
 
 
-// ----------------------------------------------
-// |              SCRIPT COMPONENT             |
-// ----------------------------------------------
-//
-// /**
-//  * Script component that allows for writing game scripts that can interact with entities
-//  * This component provides lifecycle methods for game scripting
-//  */
-// class Script : public Component {
-// private:
-//     // Callback events that can be set on script
-//     std::function<void()> _startCallback = nullptr;
-//     std::function<void(float)> _updateCallback = nullptr;
-//     std::function<void(Entity*)> _onCollisionEnterCallback = nullptr;
-//     std::function<void(Entity*)> _onCollisionExitCallback = nullptr;
-//     std::function<void()> _onDestroyCallback = nullptr;
-//
-//     bool _initialized = false;
-//
-// public:
-//     Script() = default;
-//     Script(const Script&) = default;
-//     ~Script() override {
-//         if (_onDestroyCallback) {
-//             _onDestroyCallback();
-//         }
-//     }
-//
-//     void Init() override {
-//         if (!_initialized && _startCallback) {
-//             _startCallback();
-//             _initialized = true;
-//         }
-//     }
-//
-//     /**
-//      * Called by the engine every frame
-//      * @param deltaTime Time since last frame in seconds
-//      */
-//     void Update(float deltaTime) {
-//         if (_updateCallback) {
-//             _updateCallback(deltaTime);
-//         }
-//     }
-//
-//     /**
-//      * Called when this entity's collider enters collision with another entity
-//      * @param other The other entity involved in the collision
-//      */
-//     void OnCollisionEnter(Entity* other) {
-//         if (_onCollisionEnterCallback) {
-//             _onCollisionEnterCallback(other);
-//         }
-//     }
-//
-//     /**
-//      * Called when this entity's collider exits collision with another entity
-//      * @param other The other entity involved in the collision
-//      */
-//     void OnCollisionExit(Entity* other) {
-//         if (_onCollisionExitCallback) {
-//             _onCollisionExitCallback(other);
-//         }
-//     }
-//
-//     // Setters for callback functions
-//     void SetStartCallback(const std::function<void()>& callback) {
-//         _startCallback = callback;
-//     }
-//
-//     void SetUpdateCallback(const std::function<void(float)>& callback) {
-//         _updateCallback = callback;
-//     }
-//
-//     void SetOnCollisionEnterCallback(const std::function<void(Entity*)>& callback) {
-//         _onCollisionEnterCallback = callback;
-//     }
-//
-//     void SetOnCollisionExitCallback(const std::function<void(Entity*)>& callback) {
-//         _onCollisionExitCallback = callback;
-//     }
-//
-//     void SetOnDestroyCallback(const std::function<void()>& callback) {
-//         _onDestroyCallback = callback;
-//     }
-//
-//     bool HasStartCallback() const {
-//         return _startCallback != nullptr;
-//     }
-//
-//     bool HasUpdateCallback() const {
-//         return _updateCallback != nullptr;
-//     }
-//
-//     bool HasOnCollisionEnterCallback() const {
-//         return _onCollisionEnterCallback != nullptr;
-//     }
-//
-//     bool HasOnCollisionExitCallback() const {
-//         return _onCollisionExitCallback != nullptr;
-//     }
-//
-//     bool HasOnDestroyCallback() const {
-//         return _onDestroyCallback != nullptr;
-//     }
-// };
 
 class Script : public Component {
 private:
-	std::unique_ptr<BaseScript> _script = nullptr;
+	std::shared_ptr<BaseScript> _script = nullptr;
+
 public:
 	Script() = default;
+	Script(const Script&) = default;
 
+	// Move constructor
+	// Script(Script&& other)
+	// 	: Component(std::move(other)),  // Don't forget to move the base class
+	// 	  _script(std::move(other._script))
+	// {}
+	//
+	// // Move assignment operator
+	// Script& operator=(Script&& other) noexcept {
+	// 	if (this != &other) {
+	// 		Component::operator=(std::move(other));  // Move base class
+	// 		_script = std::move(other._script);
+	// 	}
+	// 	return *this;
+	// }
 
 	void Init() override {}
 	/**
@@ -525,7 +439,8 @@ public:
 	 */
 	template<typename T, typename... Args>
 	void Attach(Args&&... args){
-		_script = std::make_unique<T>(std::forward<Args>(args)...);
+		_script = std::make_shared<T>(std::forward<Args>(args)...);
+		_script->_entity = _owner;
 	}
 
 	/**

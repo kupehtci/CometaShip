@@ -9,6 +9,7 @@
 
 #include "layer_system/layers/CometaLayer.h"
 #include "layer_system/layers/MaterialLayer.h"
+#include "layer_system/layers/ShipGameLayer.h"
 
 Application::Application(){
     this->_isRunning = true;
@@ -47,8 +48,10 @@ void Application::Init(){
     UILayer* uiLayer = new UILayer();
     _onion.PushLayer(uiLayer);
 
-    MapsLayer* mapsLayer = new MapsLayer();
-    _onion.PushLayer(mapsLayer);
+    // MapsLayer* mapsLayer = new MapsLayer();
+    // _onion.PushLayer(mapsLayer);
+    ShipGameLayer* shipGameLayer = new ShipGameLayer();
+    _onion.PushLayer(shipGameLayer);
 
     // Initialize scritpt manager
     ScriptManager::Create();

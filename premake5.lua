@@ -23,7 +23,7 @@ IncludeDir["ImGUI"] = "vendor/imgui"
 include "vendor/glad"
 
 project "CometaGL"
-	kind "StaticLib"
+	kind "ConsoleApp"
 	language "C++"
     cppdialect "C++17"
 

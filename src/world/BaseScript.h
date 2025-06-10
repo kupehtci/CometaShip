@@ -7,7 +7,7 @@ class Collision;
 class Entity;
 
 class BaseScript {
-protected:
+public:
     Entity* _entity = nullptr;
 
 public:
