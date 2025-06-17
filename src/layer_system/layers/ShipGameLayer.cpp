@@ -154,24 +154,39 @@ void ShipGameLayer::InitImGui() {
 
 
 void ShipGameLayer::InitializeGameWorld() {
-    std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
+    // Set up camera
+    _camera = Camera();
+    
+    glm::vec3 cameraPos = glm::vec3(0.0f, 2.0f, -5.0f);
+    _camera.GetPosition() = cameraPos;
+    _camera.OnUpdate();
+
+    WorldManagerRef->CreateWorld(0);
+    WorldManagerRef->SetCurrentWorld(0);
+    std::shared_ptr<World> gameWorld = WorldManagerRef->GetWorld(0);
+    gameWorld->SetCamera(&_camera);
     
     Entity* playerShip = gameWorld->CreateEntity("PlayerShip");
     _playerShipId = playerShip->GetUID();
+    
 
     Transform* shipTransform = playerShip->GetComponent<Transform>();
-    shipTransform->position = glm::vec3(0.0f, 0.0f, -5.0f);
-    shipTransform->scale = glm::vec3(1.0f, 0.2f, 0.5f);
+    shipTransform->position = glm::vec3(0.0f, 0.0f, -5.0f); // Center of screen
+    shipTransform->scale = glm::vec3(1.0f, 0.2f, 0.5f); // Flat, wide ship
     
+    // Add collider to player ship
     ColliderComponent* shipCollider = playerShip->CreateComponent<ColliderComponent>();
-    shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 0.2f, 0.5f));
+    shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 0.2f, 0.5f)); // Match the scale
     
+    // Add rigidbody to player ship
     RigidBody* shipRb = playerShip->CreateComponent<RigidBody>();
     shipRb->SetMass(1.0f);
     shipRb->SetAffectedByGravity(false);
     
+    // Add renderable component to player ship
     MeshRenderable* shipRenderable = playerShip->CreateComponent<MeshRenderable>();
     
+    // Create material for the ship
     std::shared_ptr<Material> shipMaterial = std::make_shared<Material>(
         glm::vec3(1.0f, 1.0f, 1.0f),
         glm::vec3(0.1f, 0.1f, 0.8f),
@@ -188,16 +203,79 @@ void ShipGameLayer::InitializeGameWorld() {
         "src/render/shaders/blinn_phong_shader.frag");
 
     shipRenderable->SetMaterial(shipMaterial);
+    
+    // Create a box mesh for the ship
     shipRenderable->SetMesh(Mesh::CreateBox());
     
+    // Add script component to player ship
     Script* shipScript = playerShip->CreateComponent<Script>();
     shipScript->Attach<ShipScript>();
 
+
+    // Add tag component to identify the player
     Tag* shipTag = playerShip->CreateComponent<Tag>();
     shipTag->SetTag("player");
     
+    // Create a directional light
+    Entity* lightEntity = gameWorld->CreateEntity("DirectionalLight");
+    DirectionalLight* dirLight = lightEntity->CreateComponent<DirectionalLight>();
+    dirLight->SetDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
+    
+    // Create a floor/background
+    Entity* floor = gameWorld->CreateEntity("Floor");
+    floor->GetComponent<Transform>()->position = glm::vec3(0.0f, -2.0f, -10.0f);
+    floor->GetComponent<Transform>()->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+    floor->GetComponent<Transform>()->scale = glm::vec3(20.0f, 0.1f, 40.0f);
+    
+    MeshRenderable* floorRenderable = floor->CreateComponent<MeshRenderable>();
+    floorRenderable->SetMesh(Mesh::CreateBox());
+    
+    std::shared_ptr<Material> floorMaterial = std::make_shared<Material>(
+        glm::vec3(1.0f, 1.0f, 1.0f),
+        glm::vec3(0.2f, 0.2f, 0.2f),
+        glm::vec3(0.3f, 0.3f, 0.3f),
+        glm::vec3(0.1f, 0.1f, 0.1f),
+        8.0f,
+        "resources/isometric_cubes.jpg",
+        "resources/white.jpg",
+        "resources/black.jpg"
+    );
+    
+    floorMaterial->LoadShader("Floor Shader", 
+        "src/render/shaders/blinn_phong_shader.vert", 
+        "src/render/shaders/blinn_phong_shader.frag");
+    
+    floorRenderable->SetMaterial(floorMaterial);
+    
+    // --- POINT LIGHT ---
+    Entity* ptlight0 = gameWorld->CreateEntity("Light Point 1");
+    ptlight0->CreateComponent<PointLight>();
+
+    MeshRenderable* ptlight0Renderable = ptlight0->CreateComponent<MeshRenderable>();
+
+    std::shared_ptr<Material> material1 = std::make_shared<Material>(glm::vec3(1.0f, 1.0f, 1.0f),
+                                    glm::vec3(1.0f, 0.5f, 0.31f),
+                                    glm::vec3(1.0f, 0.5f, 0.31f),
+                                    glm::vec3(0.5f, 0.5f, 0.5f),
+                                    2.0f,
+                                    "resources/white.jpg",
+                                    "resources/white.jpg",
+                                    "resources/black.jpg");
+
+    material1->LoadShader("Main Shader","src/render/shaders/light_shader.vert", "src/render/shaders/light_shader.frag");
+
+    ptlight0Renderable->SetMesh(Mesh::CreateSphere());
+    ptlight0Renderable->SetMaterial(material1);
+    ptlight0->GetComponent<Transform>()->position = glm::vec3(0.0f, 1.0f, 5.0f);
+    ptlight0->GetComponent<Transform>()->scale = glm::vec3(0.2f, 0.2f, 0.2f);
+    // --- END OF POINT LIGHT --- 
+
+    // Subscribe to input events
+    EventBus::GetInstancePtr()->Subscribe(EventType::COMETA_KEY_PRESS_EVENT, this);
+    EventBus::GetInstancePtr()->Subscribe(EventType::COMETA_KEY_RELEASE_EVENT, this);
+    
     // Create lights and floor
-    SetupLightsAndEnvironment();
+    // SetupLightsAndEnvironment();
 }
 
 void ShipGameLayer::SetupLightsAndEnvironment() {
@@ -252,10 +330,8 @@ void ShipGameLayer::Update() {
                     _gameSpeed += 0.001f;
                     _obstacleSpawnInterval = std::max(0.5f, _obstacleSpawnInterval - 0.02f);
                 }
-                _renderer->Render();
+                
                 UpdateScore(1);
-
-
             }
             break;
             
@@ -315,12 +391,17 @@ void ShipGameLayer::RenderMenu() {
     }
     
     ImGui::End();
+    ImGui::EndFrame();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void ShipGameLayer::RenderPauseMenu() {
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
     ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     
     ImGui::Begin("Pause Menu", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
@@ -371,7 +452,6 @@ void ShipGameLayer::StartGame() {
 }
 
 void ShipGameLayer::ExitGame() {
-    // Handle game exit
     Close();
 }
 
