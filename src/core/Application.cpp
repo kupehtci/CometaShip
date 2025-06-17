@@ -45,8 +45,8 @@ void Application::Init(){
     _physicsManager = PhysicsManager::GetInstancePtr();
 
     // Push the layers
-    UILayer* uiLayer = new UILayer();
-    _onion.PushLayer(uiLayer);
+    // UILayer* uiLayer = new UILayer();
+    // _onion.PushLayer(uiLayer);
 
     // MapsLayer* mapsLayer = new MapsLayer();
     // _onion.PushLayer(mapsLayer);

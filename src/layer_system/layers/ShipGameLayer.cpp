@@ -19,6 +19,13 @@
 #include "world/ShipScript.h"
 #include "world/ObstacleScript.h"
 
+// Include ImGui for menu rendering
+#include "imgui_internal.h"
+#include "misc/cpp/imgui_stdlib.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
+
 ShipGameLayer::ShipGameLayer() {
     _name = "ShipGameLayer";
 }
@@ -39,28 +46,132 @@ void ShipGameLayer::Init() {
     WorldManagerRef->SetCurrentWorld(0);
     std::shared_ptr<World> gameWorld = WorldManagerRef->GetWorld(0);
     gameWorld->SetCamera(&_camera);
+
+    InitImGui();
+    
+    // Initialize game world but don't start gameplay yet
+    InitializeGameWorld();
+
+    // Subscribe to input events
+    EventBus::GetInstancePtr()->Subscribe(EventType::COMETA_KEY_PRESS_EVENT, this);
+    EventBus::GetInstancePtr()->Subscribe(EventType::COMETA_KEY_RELEASE_EVENT, this);
+}
+
+void ShipGameLayer::InitImGui() {
+     std::cout << "UILayer::Init" << std::endl;
+
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(Renderer::GetInstancePtr()->GetWindow()->GetGlfwWindow(), true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+    ImGui_ImplOpenGL3_Init();
+
+    // Subscribe to events
+    EventBus::GetInstancePtr()->Subscribe(COMETA_KEY_PRESS_EVENT, this);
+
+
+    ImGuiStyle* style = &ImGui::GetStyle();
+
+    // Fonst assign
+    float fontSize = 15.0f;
+    io.Fonts->AddFontFromFileTTF("resources/Fonts/jetbrains/JetBrainsMonoNL-Regular.ttf", fontSize);
+    io.FontDefault = io.Fonts->AddFontFromFileTTF("resources/Fonts/jetbrains/JetBrainsMonoNL-Regular.ttf", fontSize);
+
+    style->WindowPadding = ImVec2(15, 15);
+    style->WindowRounding = 5.0f;
+    style->FramePadding = ImVec2(5, 5);
+    style->FrameRounding = 4.0f;
+    style->ItemSpacing = ImVec2(12, 8);
+    style->ItemInnerSpacing = ImVec2(8, 6);
+    style->IndentSpacing = 25.0f;
+    style->ScrollbarSize = 15.0f;
+    style->ScrollbarRounding = 9.0f;
+    style->GrabMinSize = 5.0f;
+    style->GrabRounding = 3.0f;
+
+    style->ScaleAllSizes(0.3f);
+
+    //style->ChildRounding = 3.0f; 
+    //style->ChildBorderSize = 15.0f;
+
+
+
+    style->Colors[ImGuiCol_Text] = ImVec4(0.40f, 0.39f, 0.38f, 1.00f);
+    style->Colors[ImGuiCol_TextDisabled] = ImVec4(0.40f, 0.39f, 0.38f, 0.77f);
+    style->Colors[ImGuiCol_WindowBg] = ImVec4(0.92f, 0.91f, 0.88f, 0.70f);
+    // style->Colors[ImGuiCol_ChildWindowBg] = ImVec4(1.00f, 0.98f, 0.95f, 0.58f);
+    style->Colors[ImGuiCol_PopupBg] = ImVec4(0.92f, 0.91f, 0.88f, 0.92f);
+    style->Colors[ImGuiCol_Border] = ImVec4(0.84f, 0.83f, 0.80f, 0.65f);
+    style->Colors[ImGuiCol_BorderShadow] = ImVec4(0.92f, 0.91f, 0.88f, 0.00f);
+    style->Colors[ImGuiCol_FrameBg] = ImVec4(1.00f, 0.98f, 0.95f, 1.00f);
+    style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.99f, 1.00f, 0.40f, 0.78f);
+    style->Colors[ImGuiCol_FrameBgActive] = ImVec4(0.26f, 1.00f, 0.00f, 1.00f);
+    style->Colors[ImGuiCol_TitleBg] = ImVec4(1.00f, 0.98f, 0.95f, 1.00f);
+    style->Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(1.00f, 0.98f, 0.95f, 0.75f);
+    style->Colors[ImGuiCol_TitleBgActive] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
+    style->Colors[ImGuiCol_MenuBarBg] = ImVec4(1.00f, 0.98f, 0.95f, 0.47f);
+    style->Colors[ImGuiCol_ScrollbarBg] = ImVec4(1.00f, 0.98f, 0.95f, 1.00f);
+    style->Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.00f, 0.00f, 0.00f, 0.21f);
+    style->Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.90f, 0.91f, 0.00f, 0.78f);
+    style->Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
+    // style->Colors[ImGuiCol_ComboBg] = ImVec4(1.00f, 0.98f, 0.95f, 1.00f);
+    style->Colors[ImGuiCol_CheckMark] = ImVec4(0.25f, 1.00f, 0.00f, 0.80f);
+    
+    style->Colors[ImGuiCol_SliderGrab] = ImVec4(0.00f, 0.00f, 0.00f, 0.14f);
+    style->Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
+
+    style->Colors[ImGuiCol_Button] = ImVec4(0.00f, 0.00f, 0.00f, 0.14f);
+    style->Colors[ImGuiCol_ButtonHovered] = ImVec4(0.99f, 1.00f, 0.22f, 0.86f);
+    style->Colors[ImGuiCol_ButtonActive] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
+
+    style->Colors[ImGuiCol_Header] = ImVec4(0.655f, 0.627f, 0.741f, 0.76f);
+    style->Colors[ImGuiCol_HeaderHovered] = ImVec4(0.655f, 0.627f, 0.741f, 0.86f);
+    style->Colors[ImGuiCol_HeaderActive] = ImVec4(0.655f, 0.627f, 0.741f, 1.00f);
+
+    // style->Colors[ImGuiCol_Column] = ImVec4(0.00f, 0.00f, 0.00f, 0.32f);
+    /*style->Colors[ImGuiCol_ColumnHovered] = ImVec4(0.25f, 1.00f, 0.00f, 0.78f);
+    style->Colors[ImGuiCol_ColumnActive] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);*/
+    style->Colors[ImGuiCol_ResizeGrip] = ImVec4(0.00f, 0.00f, 0.00f, 0.04f);
+    style->Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.25f, 1.00f, 0.00f, 0.78f);
+    style->Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
+   /* style->Colors[ImGuiCol_CloseButton] = ImVec4(0.40f, 0.39f, 0.38f, 0.16f);
+    style->Colors[ImGuiCol_CloseButtonHovered] = ImVec4(0.40f, 0.39f, 0.38f, 0.39f);
+    style->Colors[ImGuiCol_CloseButtonActive] = ImVec4(0.40f, 0.39f, 0.38f, 1.00f);*/
+    style->Colors[ImGuiCol_PlotLines] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
+    style->Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
+    style->Colors[ImGuiCol_PlotHistogram] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
+    style->Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
+    style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25f, 1.00f, 0.00f, 0.43f);
+    //style->Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(1.00f, 0.98f, 0.95f, 0.73f);
+
+}
+
+
+void ShipGameLayer::InitializeGameWorld() {
+    std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
     
     Entity* playerShip = gameWorld->CreateEntity("PlayerShip");
     _playerShipId = playerShip->GetUID();
-    
 
     Transform* shipTransform = playerShip->GetComponent<Transform>();
-    shipTransform->position = glm::vec3(0.0f, 0.0f, -5.0f); // Center of screen
-    shipTransform->scale = glm::vec3(1.0f, 0.2f, 0.5f); // Flat, wide ship
+    shipTransform->position = glm::vec3(0.0f, 0.0f, -5.0f);
+    shipTransform->scale = glm::vec3(1.0f, 0.2f, 0.5f);
     
-    // Add collider to player ship
     ColliderComponent* shipCollider = playerShip->CreateComponent<ColliderComponent>();
-    shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 0.2f, 0.5f)); // Match the scale
+    shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 0.2f, 0.5f));
     
-    // Add rigidbody to player ship
     RigidBody* shipRb = playerShip->CreateComponent<RigidBody>();
     shipRb->SetMass(1.0f);
     shipRb->SetAffectedByGravity(false);
     
-    // Add renderable component to player ship
     MeshRenderable* shipRenderable = playerShip->CreateComponent<MeshRenderable>();
     
-    // Create material for the ship
     std::shared_ptr<Material> shipMaterial = std::make_shared<Material>(
         glm::vec3(1.0f, 1.0f, 1.0f),
         glm::vec3(0.1f, 0.1f, 0.8f),
@@ -77,25 +188,25 @@ void ShipGameLayer::Init() {
         "src/render/shaders/blinn_phong_shader.frag");
 
     shipRenderable->SetMaterial(shipMaterial);
-    
-    // Create a box mesh for the ship
     shipRenderable->SetMesh(Mesh::CreateBox());
     
-    // Add script component to player ship
     Script* shipScript = playerShip->CreateComponent<Script>();
     shipScript->Attach<ShipScript>();
 
-
-    // Add tag component to identify the player
     Tag* shipTag = playerShip->CreateComponent<Tag>();
     shipTag->SetTag("player");
     
-    // Create a directional light
+    // Create lights and floor
+    SetupLightsAndEnvironment();
+}
+
+void ShipGameLayer::SetupLightsAndEnvironment() {
+    std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
+    
     Entity* lightEntity = gameWorld->CreateEntity("DirectionalLight");
     DirectionalLight* dirLight = lightEntity->CreateComponent<DirectionalLight>();
     dirLight->SetDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
     
-    // Create a floor/background
     Entity* floor = gameWorld->CreateEntity("Floor");
     floor->GetComponent<Transform>()->position = glm::vec3(0.0f, -2.0f, -10.0f);
     floor->GetComponent<Transform>()->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -120,60 +231,148 @@ void ShipGameLayer::Init() {
         "src/render/shaders/blinn_phong_shader.frag");
     
     floorRenderable->SetMaterial(floorMaterial);
-    
-    // --- POINT LIGHT ---
-    Entity* ptlight0 = gameWorld->CreateEntity("Light Point 1");
-    ptlight0->CreateComponent<PointLight>();
-
-    MeshRenderable* ptlight0Renderable = ptlight0->CreateComponent<MeshRenderable>();
-
-    std::shared_ptr<Material> material1 = std::make_shared<Material>(glm::vec3(1.0f, 1.0f, 1.0f),
-                                    glm::vec3(1.0f, 0.5f, 0.31f),
-                                    glm::vec3(1.0f, 0.5f, 0.31f),
-                                    glm::vec3(0.5f, 0.5f, 0.5f),
-                                    2.0f,
-                                    "resources/white.jpg",
-                                    "resources/white.jpg",
-                                    "resources/black.jpg");
-
-    material1->LoadShader("Main Shader","src/render/shaders/light_shader.vert", "src/render/shaders/light_shader.frag");
-
-    ptlight0Renderable->SetMesh(Mesh::CreateSphere());
-    ptlight0Renderable->SetMaterial(material1);
-    ptlight0->GetComponent<Transform>()->position = glm::vec3(0.0f, 1.0f, 5.0f);
-    ptlight0->GetComponent<Transform>()->scale = glm::vec3(0.2f, 0.2f, 0.2f);
-    // --- END OF POINT LIGHT --- 
-
-    // Subscribe to input events
-    EventBus::GetInstancePtr()->Subscribe(EventType::COMETA_KEY_PRESS_EVENT, this);
-    EventBus::GetInstancePtr()->Subscribe(EventType::COMETA_KEY_RELEASE_EVENT, this);
-
-    _gameRunning = true;
 }
 
 void ShipGameLayer::Update() {
-    if (!_gameRunning) return;
-    
-    float deltaTime = Time::GetDeltaTime();
-
-
     _camera.OnUpdate();
 
-    _obstacleSpawnTimer += deltaTime;
-    if (_obstacleSpawnTimer >= _obstacleSpawnInterval) {
-        SpawnObstacle();
-        _obstacleSpawnTimer = 0.0f;
+    switch (_currentState) {
+        case GameState::MENU:
+            RenderMenu();
+            break;
+            
+        case GameState::PLAYING:
+            if (_gameRunning) {
+                float deltaTime = Time::GetDeltaTime();
+                _obstacleSpawnTimer += deltaTime;
+                
+                if (_obstacleSpawnTimer >= _obstacleSpawnInterval) {
+                    SpawnObstacle();
+                    _obstacleSpawnTimer = 0.0f;
+                    _gameSpeed += 0.001f;
+                    _obstacleSpawnInterval = std::max(0.5f, _obstacleSpawnInterval - 0.02f);
+                }
+                _renderer->Render();
+                UpdateScore(1);
 
-        _gameSpeed += 0.001f;
-        _obstacleSpawnInterval = std::max(0.5f, _obstacleSpawnInterval - 0.02f);
+
+            }
+            break;
+            
+        case GameState::PAUSED:
+            RenderPauseMenu();
+            break;
+            
+        case GameState::GAME_OVER:
+            RenderGameOverScreen();
+            break;
     }
-
-    // Increase score
-    UpdateScore(1);
 }
 
-void ShipGameLayer::Close() {
-    _gameRunning = false;
+void ShipGameLayer::RenderMenu() {
+    
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    
+    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(300, 400));
+    
+    ImGui::Begin("Cometa Ship", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    
+    ImGui::Text("Main Menu");
+    ImGui::Separator();
+    
+    if (ImGui::Button("Start Game", ImVec2(280, 40))) {
+        StartGame();
+    }
+    
+    if (ImGui::Button("Controls", ImVec2(280, 40))) {
+        _showControls = true;
+    }
+    
+    if (ImGui::Button("High Scores", ImVec2(280, 40))) {
+        _showHighScores = true;
+    }
+    
+    if (ImGui::Button("Exit", ImVec2(280, 40))) {
+        ExitGame();
+    }
+    
+    if (_showControls) {
+        ImGui::Begin("Controls", &_showControls);
+        ImGui::Text("A/Left Arrow - Move Left");
+        ImGui::Text("D/Right Arrow - Move Right");
+        ImGui::Text("P - Pause Game");
+        ImGui::Text("R - Reset Game");
+        ImGui::End();
+    }
+    
+    if (_showHighScores) {
+        ImGui::Begin("High Scores", &_showHighScores);
+        ImGui::Text("Coming Soon!");
+        ImGui::End();
+    }
+    
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void ShipGameLayer::RenderPauseMenu() {
+    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    
+    ImGui::Begin("Pause Menu", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::Text("Game Paused");
+    
+    if (ImGui::Button("Resume")) {
+        _currentState = GameState::PLAYING;
+        _gameRunning = true;
+    }
+    
+    if (ImGui::Button("Return to Main Menu")) {
+        _currentState = GameState::MENU;
+    }
+    
+    ImGui::End();
+    ImGui::EndFrame();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void ShipGameLayer::RenderGameOverScreen() {
+    ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+    
+    ImGui::Begin("Game Over", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::Text("Game Over!");
+    ImGui::Text("Score: %d", _score);
+    
+    if (ImGui::Button("Try Again")) {
+        ResetGame();
+        _currentState = GameState::PLAYING;
+    }
+    
+    if (ImGui::Button("Return to Main Menu")) {
+        _currentState = GameState::MENU;
+    }
+    
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void ShipGameLayer::StartGame() {
+    _currentState = GameState::PLAYING;
+    _gameRunning = true;
+    ResetGame();
+}
+
+void ShipGameLayer::ExitGame() {
+    // Handle game exit
+    Close();
 }
 
 void ShipGameLayer::HandleEvent(Event& event) {
@@ -181,16 +380,56 @@ void ShipGameLayer::HandleEvent(Event& event) {
         KeyPressEvent& keyEvent = dynamic_cast<KeyPressEvent&>(event);
         int key = keyEvent.GetKey();
 
-        if (key == GLFW_KEY_R) {
-            ResetGame();
-            event.SetHandled();
-        }
-
-        if (key == GLFW_KEY_P) {
-            _gameRunning = !_gameRunning;
-            event.SetHandled();
+        switch (_currentState) {
+            case GameState::PLAYING:
+                if (key == GLFW_KEY_R) {
+                    ResetGame();
+                    event.SetHandled();
+                } else if (key == GLFW_KEY_P) {
+                    _currentState = GameState::PAUSED;
+                    _gameRunning = false;
+                    event.SetHandled();
+                }
+                break;
+                
+            case GameState::MENU:
+                HandleMenuInput(key);
+                break;
+                
+            case GameState::PAUSED:
+                if (key == GLFW_KEY_P) {
+                    _currentState = GameState::PLAYING;
+                    _gameRunning = true;
+                    event.SetHandled();
+                }
+                break;
         }
     }
+}
+
+void ShipGameLayer::HandleMenuInput(int key) {
+    switch (key) {
+        case GLFW_KEY_UP:
+            _selectedMenuItem = (_selectedMenuItem - 1 + NUM_MENU_ITEMS) % NUM_MENU_ITEMS;
+            break;
+            
+        case GLFW_KEY_DOWN:
+            _selectedMenuItem = (_selectedMenuItem + 1) % NUM_MENU_ITEMS;
+            break;
+            
+        case GLFW_KEY_ENTER:
+            switch (_selectedMenuItem) {
+                case 0: StartGame(); break;
+                case 1: ShowControls(); break;
+                case 2: ShowHighScores(); break;
+                case 3: ExitGame(); break;
+            }
+            break;
+    }
+}
+
+void ShipGameLayer::Close() {
+    _gameRunning = false;
 }
 
 void ShipGameLayer::SpawnObstacle() {
