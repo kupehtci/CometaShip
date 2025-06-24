@@ -181,7 +181,7 @@ void ShipGameLayer::InitializeGameWorld() {
     
     // Add collider to player ship
     ColliderComponent* shipCollider = _playerShip->CreateComponent<ColliderComponent>();
-    shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f)); 
+    shipCollider->SetCollider<BoxCollider>(glm::vec3(0.4f, 0.8f, 0.4f)); 
 
     // Add rigidbody to player ship
     RigidBody* shipRb = _playerShip->CreateComponent<RigidBody>();
@@ -689,15 +689,44 @@ void ShipGameLayer::SpawnObstacle() {
     ColliderComponent* obstacleCollider = obstacle->GetComponent<ColliderComponent>();
     obstacleCollider->SetCollider<BoxCollider>(obstacleTransform->scale);
     RigidBody* obstacleRb = obstacle->GetComponent<RigidBody>();
+
+
+    // Set a random slow rotation in a random axis
+    float axisRand = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    float speedRand = 10.0f + static_cast<float>(rand() % 30); 
+
+    glm::vec3 rotAxis(0.0f);
+    if (axisRand < 0.33f) {
+        rotAxis.x = 1.0f; 
+        rotAxis.y = 1.0f; 
+    }
+    else if (axisRand < 0.66f) {
+        rotAxis.y = 1.0f; 
+        rotAxis.z = 1.0f; 
+    }
+    else{
+        rotAxis.z = 1.0f; 
+        rotAxis.x = 1.0f;
+    }
+    float rotSpeed = speedRand * (rand() % 2 == 0 ? 1.0f : -1.0f); // random direction
+    obstacleTransform->rotation = glm::vec3(0.0f);
+    obstacleRb->SetAngularVelocity(rotAxis * glm::radians(rotSpeed));
+    obstacle->SetName("active"); 
+
+
     obstacleRb->SetAffectedByGravity(false);
     obstacleRb->SetMass(1.0f);
     obstacleRb->SetLinearVelocity(glm::vec3(0.0f, -_gameSpeed, 0.0f));
+
+    
+
     // Reset script state
     Script* script = obstacle->GetComponent<Script>();
     if (script) {
         auto obsScript = std::dynamic_pointer_cast<ObstacleScript>(script->GetScript());
         if (obsScript) obsScript->Reset(_gameSpeed);
     }
+
     // Reset material color if needed
     MeshRenderable* renderable = obstacle->GetComponent<MeshRenderable>();
     if (renderable && renderable->GetMaterial()) {

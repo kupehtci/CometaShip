@@ -19,6 +19,12 @@ private:
     bool _isRed = false;
     float _redTimer = 0.0f;
     
+    // --- For smooth tilting ---
+    float _targetTilt = 0.0f;
+    float _currentTilt = 0.0f;
+    float _tiltAmount = 20.0f; // degrees
+    float _tiltLerpSpeed = 8.0f;
+    
 public:
     ShipScript() = default;
     ~ShipScript() override = default;
@@ -50,14 +56,27 @@ public:
         float moveX = 0.0f;
         
         if (Input::IsKeyPressed(GLFW_KEY_A) || Input::IsKeyPressed(GLFW_KEY_LEFT)) {
-            COMETA_MSG("[SHIP SCRIPT] Moving left");
+            // COMETA_MSG("[SHIP SCRIPT] Moving left");
             moveX -= 1.0f;
         }
         
         if (Input::IsKeyPressed(GLFW_KEY_D) || Input::IsKeyPressed(GLFW_KEY_RIGHT)) {
-            COMETA_MSG("[SHIP SCRIPT] Moving right");
+            // COMETA_MSG("[SHIP SCRIPT] Moving right");
             moveX += 1.0f;
         }
+        
+        // --- Tilting logic ---
+        if (moveX < 0.0f) {
+            _targetTilt = _tiltAmount;
+        } else if (moveX > 0.0f) {
+            _targetTilt = -_tiltAmount;
+        } else {
+            _targetTilt = 0.0f;
+        }
+        // Smoothly interpolate current tilt towards target tilt
+        _currentTilt += (_targetTilt - _currentTilt) * std::min(_tiltLerpSpeed * deltaTime, 1.0f);
+        
+        transform->rotation.z = _currentTilt;
         
         if (moveX != 0.0f) {
             float newX = transform->position.x + moveX * _moveSpeed * deltaTime;

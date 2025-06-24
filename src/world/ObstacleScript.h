@@ -14,7 +14,9 @@ private:
     float _destroyYPosition = -20.0f; // Z position at which to deactivate the obstacle
 
     // Time in seconds before the obstacle is destroyed
-    float _lifeSpan = 10.0f; 
+    float _lifeSpan = 30.0f; 
+    // Maximum lifespan for reset purposes
+    float _maxLifeSpan = 30.0f; 
     bool _expired = false;
     
 public:
@@ -90,7 +92,18 @@ public:
     float GetSpeed() const { return _speed; }
     void SetSpeed(float speed) { _speed = speed; }
     bool IsExpired() const { return _expired; }
-    void Reset(float speed) { _speed = speed; _lifeSpan = 10.0f; _expired = false; }
+    
+    void Reset(float speed) { 
+        _speed = speed; 
+        _lifeSpan = _maxLifeSpan; 
+        _expired = false; 
+    }
+
+    void Reset() {
+        _speed = 5.0f;
+        _lifeSpan = _maxLifeSpan;
+        _expired = false;
+    }
 };
 
 #endif //COMETA_OBSTACLE_SCRIPT_H
