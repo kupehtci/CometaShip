@@ -485,6 +485,9 @@ public:
 			_script->OnCollisionExit(other, collision);
 		}
 	}
+
+	// Getters and setters
+	std::shared_ptr<BaseScript> GetScript() const { return _script; }
 };
 
 #endif

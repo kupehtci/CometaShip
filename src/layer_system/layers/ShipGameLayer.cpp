@@ -1,3 +1,5 @@
+#include <memory>
+
 #include "ShipGameLayer.h"
 
 #include <layer_system/EventBus.h>
@@ -171,12 +173,12 @@ void ShipGameLayer::InitializeGameWorld() {
     
 
     Transform* shipTransform = playerShip->GetComponent<Transform>();
-    shipTransform->position = glm::vec3(0.0f, 0.0f, -5.0f); // Center of screen
-    shipTransform->scale = glm::vec3(1.0f, 0.2f, 0.5f); // Flat, wide ship
+    shipTransform->position = _playerShipPosition;
+    shipTransform->scale = glm::vec3(1.0f, 0.2f, 0.5f);
     
     // Add collider to player ship
     ColliderComponent* shipCollider = playerShip->CreateComponent<ColliderComponent>();
-    shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 0.2f, 0.5f)); // Match the scale
+    shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 0.2f, 0.5f)); 
     
     // Add rigidbody to player ship
     RigidBody* shipRb = playerShip->CreateComponent<RigidBody>();
@@ -223,8 +225,8 @@ void ShipGameLayer::InitializeGameWorld() {
     
     // Create a floor/background
     Entity* floor = gameWorld->CreateEntity("Floor");
-    floor->GetComponent<Transform>()->position = glm::vec3(0.0f, -2.0f, -10.0f);
-    floor->GetComponent<Transform>()->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+    floor->GetComponent<Transform>()->position = glm::vec3(0.0f, -4.0f, -15.0f);
+    floor->GetComponent<Transform>()->rotation = glm::vec3(90.0f, 0.0f, 0.0f);
     floor->GetComponent<Transform>()->scale = glm::vec3(20.0f, 0.1f, 40.0f);
     
     MeshRenderable* floorRenderable = floor->CreateComponent<MeshRenderable>();
@@ -570,9 +572,9 @@ void ShipGameLayer::ResetGame() {
     _obstacleSpawnInterval = 2.0f;
     _gameSpeed = 5.0f;
 
-
     std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
 
+    // Remove all obstacles
     SparseSet<Entity>& entities = gameWorld->GetEntities();
     for (size_t i = 0; i < entities.Size(); i++) {
         Entity* entity = entities.Get(entities.GetDenseIndex(i));
@@ -584,6 +586,7 @@ void ShipGameLayer::ResetGame() {
         }
     }
 
+    // Reset player ship
     Entity* playerShip = nullptr;
     for (size_t i = 0; i < entities.Size(); i++) {
         Entity* entity = entities.Get(entities.GetDenseIndex(i));
@@ -595,15 +598,32 @@ void ShipGameLayer::ResetGame() {
     
     if (playerShip) {
         Transform* shipTransform = playerShip->GetComponent<Transform>();
-        shipTransform->position = glm::vec3(0.0f, 0.0f, -5.0f); 
+        shipTransform->position = _playerShipPosition; 
         shipTransform->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
+        // Reset physics
         RigidBody* shipRb = playerShip->GetComponent<RigidBody>();
         if (shipRb) {
             shipRb->SetLinearVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
             shipRb->SetAffectedByGravity(false);
             shipRb->SetMass(1.0f);
             shipRb->SetAngularVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
+        }
+
+        // Reset script state
+        Script* shipScript = playerShip->GetComponent<Script>();
+        if (shipScript) {
+            auto shipScriptInstance = std::dynamic_pointer_cast<ShipScript>(shipScript->GetScript());
+            if (shipScriptInstance) {
+                shipScriptInstance->SetAlive(true);
+            }
+        }
+
+        // Reset visual appearance
+        MeshRenderable* renderable = playerShip->GetComponent<MeshRenderable>();
+        if (renderable && renderable->GetMaterial()) {
+            renderable->GetMaterial()->SetAmbient(glm::vec3(0.1f, 0.1f, 0.8f));
+            renderable->GetMaterial()->SetDiffuse(glm::vec3(0.2f, 0.2f, 0.9f));
         }
     }
 }

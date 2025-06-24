@@ -53,4 +53,7 @@ private:
     int _selectedMenuItem = 0;
     static const int NUM_MENU_ITEMS = 4;
     unsigned int _obstacleCounter = 0; 
+
+    // Objects properties
+    glm::vec3 _playerShipPosition = glm::vec3(0.0f, -1.0f, -5.0f);
 };

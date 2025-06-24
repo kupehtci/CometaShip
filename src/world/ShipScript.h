@@ -20,18 +20,14 @@ public:
     
     void OnInit() override {
         COMETA_MSG("[SHIP SCRIPT] Initialized");
-        // Don't set _entity here, it should be set by the Script component
-        // when Attach is called
     }
     
     void OnUpdate(float deltaTime) override {
         if (!_isAlive || !_entity) return;
         
-        // Get the transform component
         Transform* transform = _entity->GetComponent<Transform>();
         if (!transform) return;
         
-        // Handle left/right movement with A/D or arrow keys
         float moveX = 0.0f;
         
         if (Input::IsKeyPressed(GLFW_KEY_A) || Input::IsKeyPressed(GLFW_KEY_LEFT)) {
