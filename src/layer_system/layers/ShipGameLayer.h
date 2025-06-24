@@ -2,6 +2,8 @@
 
 #include "layer_system/Layer.h"
 #include "render/Camera.h"
+#include <vector>
+#include "world/Entity.h"
 
 class ShipGameLayer : public Layer {
 public:
@@ -56,4 +58,14 @@ private:
 
     // Objects properties
     glm::vec3 _playerShipPosition = glm::vec3(0.0f, -1.0f, -5.0f);
+
+    // --- Obstacle Pool ---
+    std::vector<Entity*> _obstaclePool;
+    std::vector<Entity*> _activeObstacles;
+    size_t _obstaclePoolSize = 20; // Adjust as needed
+
+    void InitializeObstaclePool();
+    Entity* GetPooledObstacle();
+    void DeactivateObstacle(Entity* obstacle);
+    void UpdateObstacles(float deltaTime);
 };

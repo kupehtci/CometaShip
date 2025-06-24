@@ -1,4 +1,5 @@
 #include <memory>
+#include <algorithm>
 
 #include "ShipGameLayer.h"
 
@@ -53,6 +54,7 @@ void ShipGameLayer::Init() {
     
     // Initialize game world but don't start gameplay yet
     InitializeGameWorld();
+    InitializeObstaclePool();
 
     // Subscribe to input events
     EventBus::GetInstancePtr()->Subscribe(EventType::COMETA_KEY_PRESS_EVENT, this);
@@ -315,32 +317,27 @@ void ShipGameLayer::SetupLightsAndEnvironment() {
 
 void ShipGameLayer::Update() {
     _camera.OnUpdate();
-
+    float deltaTime = Time::GetDeltaTime();
+    UpdateObstacles(deltaTime);
     switch (_currentState) {
         case GameState::MENU:
             RenderMenu();
             break;
-            
         case GameState::PLAYING:
             if (_gameRunning) {
-                float deltaTime = Time::GetDeltaTime();
                 _obstacleSpawnTimer += deltaTime;
-                
                 if (_obstacleSpawnTimer >= _obstacleSpawnInterval) {
                     SpawnObstacle();
                     _obstacleSpawnTimer = 0.0f;
                     _gameSpeed += 0.001f;
                     _obstacleSpawnInterval = std::max(0.5f, _obstacleSpawnInterval - 0.02f);
                 }
-                
                 UpdateScore(1);
             }
             break;
-            
         case GameState::PAUSED:
             RenderPauseMenu();
             break;
-            
         case GameState::GAME_OVER:
             RenderGameOverScreen();
             break;
@@ -514,55 +511,90 @@ void ShipGameLayer::Close() {
     _gameRunning = false;
 }
 
-void ShipGameLayer::SpawnObstacle() {
-    if (!_gameRunning) return;
-    
+void ShipGameLayer::InitializeObstaclePool() {
     std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
+    _obstaclePool.clear();
+    _activeObstacles.clear();
+    for (size_t i = 0; i < _obstaclePoolSize; ++i) {
+        Entity* obstacle = gameWorld->CreateEntity("ObstaclePool_" + std::to_string(i));
+        Transform* obstacleTransform = obstacle->GetComponent<Transform>();
+        obstacleTransform->position = glm::vec3(1000.0f, 1000.0f, 1000.0f); // Move off-screen
+        obstacleTransform->scale = glm::vec3(1.0f);
+        ColliderComponent* obstacleCollider = obstacle->CreateComponent<ColliderComponent>();
+        obstacleCollider->SetCollider<BoxCollider>(obstacleTransform->scale);
+        RigidBody* obstacleRb = obstacle->CreateComponent<RigidBody>();
+        obstacleRb->SetAffectedByGravity(false);
+        obstacleRb->SetMass(1.0f);
+        obstacleRb->SetLinearVelocity(glm::vec3(0.0f));
+        MeshRenderable* obstacleRenderable = obstacle->CreateComponent<MeshRenderable>();
+        std::shared_ptr<Material> obstacleMaterial = std::make_shared<Material>(
+            glm::vec3(1.0f, 1.0f, 1.0f),
+            glm::vec3(0.8f, 0.1f, 0.1f),
+            glm::vec3(0.9f, 0.2f, 0.2f),
+            glm::vec3(1.0f, 0.6f, 0.6f),
+            16.0f,
+            "resources/white.jpg",
+            "resources/white.jpg",
+            "resources/black.jpg"
+        );
+        obstacleMaterial->LoadShader("Obstacle Shader", 
+            "src/render/shaders/blinn_phong_shader.vert", 
+            "src/render/shaders/blinn_phong_shader.frag");
+        obstacleRenderable->SetMaterial(obstacleMaterial);
+        obstacleRenderable->SetMesh(Mesh::CreateBox());
+        Script* obstacleScript = obstacle->CreateComponent<Script>();
+        obstacleScript->Attach<ObstacleScript>(_gameSpeed);
+        Tag* obstacleTag = obstacle->CreateComponent<Tag>();
+        obstacleTag->SetTag("obstacle");
+        // Add a custom flag to mark as inactive
+        obstacle->SetName("inactive");
+        _obstaclePool.push_back(obstacle);
+    }
+}
 
-    Entity* obstacle = gameWorld->CreateEntity(("Obstacle_" + std::to_string(_obstacleCounter)));
-    _obstacleCounter++;
-    
-    float randomX = static_cast<float>(rand() % 10 - 5); // -5 to 5
-    Transform* obstacleTransform = obstacle->GetComponent<Transform>();
-    obstacleTransform->position = glm::vec3(randomX, 10.0f, -5.0f);
-    
-    float scaleX = 0.5f + static_cast<float>(rand() % 100) / 100.0f; // 0.5 to 1.5
-    float scaleY = 0.5f + static_cast<float>(rand() % 100) / 100.0f; // 0.5 to 1.5
-    obstacleTransform->scale = glm::vec3(scaleX, scaleY, 0.5f);
+Entity* ShipGameLayer::GetPooledObstacle() {
+    if (_obstaclePool.empty()) return nullptr;
+    Entity* obstacle = _obstaclePool.back();
+    _obstaclePool.pop_back();
+    _activeObstacles.push_back(obstacle);
+    obstacle->SetName("active");
+    return obstacle;
+}
 
-    ColliderComponent* obstacleCollider = obstacle->CreateComponent<ColliderComponent>();
-    obstacleCollider->SetCollider<BoxCollider>(obstacleTransform->scale);
+void ShipGameLayer::DeactivateObstacle(Entity* obstacle) {
+    if (!obstacle) return;
+    // Move off-screen and reset velocity
+    Transform* t = obstacle->GetComponent<Transform>();
+    if (t) t->position = glm::vec3(1000.0f, 1000.0f, 1000.0f);
+    RigidBody* rb = obstacle->GetComponent<RigidBody>();
+    if (rb) rb->SetLinearVelocity(glm::vec3(0.0f));
+    // Mark as inactive
+    obstacle->SetName("inactive");
+    // Remove from active list
+    auto it = std::find(_activeObstacles.begin(), _activeObstacles.end(), obstacle);
+    if (it != _activeObstacles.end()) _activeObstacles.erase(it);
+    _obstaclePool.push_back(obstacle);
+}
 
-    RigidBody* obstacleRb = obstacle->CreateComponent<RigidBody>();
-    obstacleRb->SetAffectedByGravity(false);
-    obstacleRb->SetMass(1.0f);
-
-    obstacleRb->SetLinearVelocity(glm::vec3(0.0f, -_gameSpeed, 0.0f));
-
-    MeshRenderable* obstacleRenderable = obstacle->CreateComponent<MeshRenderable>();
-    std::shared_ptr<Material> obstacleMaterial = std::make_shared<Material>(
-        glm::vec3(1.0f, 1.0f, 1.0f),
-        glm::vec3(0.8f, 0.1f, 0.1f), // Red ambient
-        glm::vec3(0.9f, 0.2f, 0.2f), // Red diffuse
-        glm::vec3(1.0f, 0.6f, 0.6f), // Red specular
-        16.0f,
-        "resources/white.jpg",
-        "resources/white.jpg",
-        "resources/black.jpg"
-    );
-    
-    obstacleMaterial->LoadShader("Obstacle Shader", 
-        "src/render/shaders/blinn_phong_shader.vert", 
-        "src/render/shaders/blinn_phong_shader.frag");
-    
-    obstacleRenderable->SetMaterial(obstacleMaterial);
-    obstacleRenderable->SetMesh(Mesh::CreateBox());
-
-    Script* obstacleScript = obstacle->CreateComponent<Script>();
-    obstacleScript->Attach<ObstacleScript>(_gameSpeed);
-
-    Tag* obstacleTag = obstacle->CreateComponent<Tag>();
-    obstacleTag->SetTag("obstacle");
+void ShipGameLayer::UpdateObstacles(float deltaTime) {
+    for (auto it = _activeObstacles.begin(); it != _activeObstacles.end(); ) {
+        Entity* obstacle = *it;
+        bool deactivate = false;
+        Transform* t = obstacle->GetComponent<Transform>();
+        if (t && t->position.y < -20.0f) deactivate = true;
+        // Check lifespan via ObstacleScript
+        Script* script = obstacle->GetComponent<Script>();
+        if (script) {
+            auto obsScript = std::dynamic_pointer_cast<ObstacleScript>(script->GetScript());
+            if (obsScript && obsScript->IsExpired()) deactivate = true;
+        }
+        if (deactivate) {
+            DeactivateObstacle(obstacle);
+            it = _activeObstacles.begin(); // List changed, restart
+        } else {
+            ++it;
+        }
+    }
 }
 
 void ShipGameLayer::ResetGame() {
@@ -574,20 +606,15 @@ void ShipGameLayer::ResetGame() {
 
     std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
 
-    // Remove all obstacles
-    SparseSet<Entity>& entities = gameWorld->GetEntities();
-    for (size_t i = 0; i < entities.Size(); i++) {
-        Entity* entity = entities.Get(entities.GetDenseIndex(i));
-        if (entity) {
-            Tag* tag = entity->GetComponent<Tag>();
-            if (tag && tag->GetTag() == "obstacle") {
-                gameWorld->RemoveEntity(entity->GetUID());
-            }
-        }
+    // Deactivate all obstacles
+    for (Entity* obstacle : _activeObstacles) {
+        DeactivateObstacle(obstacle);
     }
+    _activeObstacles.clear();
 
     // Reset player ship
     Entity* playerShip = nullptr;
+    auto entities = gameWorld->GetEntities();
     for (size_t i = 0; i < entities.Size(); i++) {
         Entity* entity = entities.Get(entities.GetDenseIndex(i));
         if (entity && entity->GetUID() == _playerShipId) {
@@ -630,4 +657,43 @@ void ShipGameLayer::ResetGame() {
 
 void ShipGameLayer::UpdateScore(int points) {
     _score += points;
+}
+
+void ShipGameLayer::SpawnObstacle() {
+    if (!_gameRunning) return;
+    Entity* obstacle = GetPooledObstacle();
+    if (!obstacle) return; 
+
+    // Get player ship X position
+    float shipX = _playerShipPosition.x;
+    // Add a small random offset to X for variety
+    float randomOffset = static_cast<float>((rand() % 100) - 50) / 10.0f; // -5.0 to 5.0
+    float spawnX = shipX + randomOffset;
+    float spawnY = 12.0f; // Above the visible area
+    float spawnZ = _playerShipPosition.z; // Same Z as ship
+    Transform* obstacleTransform = obstacle->GetComponent<Transform>();
+    obstacleTransform->position = glm::vec3(spawnX, spawnY, spawnZ);
+    float scaleX = 0.5f + static_cast<float>(rand() % 100) / 100.0f;
+    float scaleY = 0.5f + static_cast<float>(rand() % 100) / 100.0f;
+    obstacleTransform->scale = glm::vec3(scaleX, scaleY, 0.5f);
+    ColliderComponent* obstacleCollider = obstacle->GetComponent<ColliderComponent>();
+    obstacleCollider->SetCollider<BoxCollider>(obstacleTransform->scale);
+    RigidBody* obstacleRb = obstacle->GetComponent<RigidBody>();
+    obstacleRb->SetAffectedByGravity(false);
+    obstacleRb->SetMass(1.0f);
+    obstacleRb->SetLinearVelocity(glm::vec3(0.0f, -_gameSpeed, 0.0f));
+    // Reset script state
+    Script* script = obstacle->GetComponent<Script>();
+    if (script) {
+        auto obsScript = std::dynamic_pointer_cast<ObstacleScript>(script->GetScript());
+        if (obsScript) obsScript->Reset(_gameSpeed);
+    }
+    // Reset material color if needed
+    MeshRenderable* renderable = obstacle->GetComponent<MeshRenderable>();
+    if (renderable && renderable->GetMaterial()) {
+        renderable->GetMaterial()->SetAmbient(glm::vec3(0.8f, 0.1f, 0.1f));
+        renderable->GetMaterial()->SetDiffuse(glm::vec3(0.9f, 0.2f, 0.2f));
+    }
+    Tag* obstacleTag = obstacle->GetComponent<Tag>();
+    if (obstacleTag) obstacleTag->SetTag("obstacle");
 }

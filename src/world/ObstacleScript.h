@@ -11,10 +11,11 @@
 class ObstacleScript final : public BaseScript {
 private:
     float _speed = 5.0f;           // Units per second
-    float _destroyYPosition = -20.0f; // Z position at which to destroy the obstacle
+    float _destroyYPosition = -20.0f; // Z position at which to deactivate the obstacle
 
     // Time in seconds before the obstacle is destroyed
     float _lifeSpan = 10.0f; 
+    bool _expired = false;
     
 public:
     ObstacleScript() = default;
@@ -36,32 +37,23 @@ public:
     }
     
     void OnUpdate(float deltaTime) override {
-        // Check if entity is valid
         if (!_entity) return;
-        
-        // Get the transform component
         Transform* transform = _entity->GetComponent<Transform>();
         if (!transform) return;
-        
-        // Check if the obstacle has passed the destroy threshold
-        if (transform->position.y > _destroyYPosition) {
-            // Remove the entity from the world
-            WorldManagerRef->GetCurrentWorld()->RemoveEntity(_entity->GetUID());
+        if (transform->position.y < _destroyYPosition) {
+            _expired = true;
             return;
         }
-        
-        // Update velocity in case game speed has changed
         RigidBody* rb = _entity->GetComponent<RigidBody>();
         if (rb) {
             glm::vec3 currentVel = rb->GetLinearVelocity();
-            if (currentVel.z != _speed) {
-                rb->SetLinearVelocity(glm::vec3(currentVel.x, currentVel.y, _speed));
+            if (currentVel.y != -_speed) {
+                rb->SetLinearVelocity(glm::vec3(currentVel.x, -_speed, currentVel.z));
             }
         }
-
         _lifeSpan -= deltaTime;
         if (_lifeSpan <= 0.0f) {
-            WorldManagerRef->GetCurrentWorld()->RemoveEntity(_entity->GetUID());
+            _expired = true;
         }
     }
     
@@ -97,6 +89,8 @@ public:
     // ------------ GETTERS AND SETTERS ---------
     float GetSpeed() const { return _speed; }
     void SetSpeed(float speed) { _speed = speed; }
+    bool IsExpired() const { return _expired; }
+    void Reset(float speed) { _speed = speed; _lifeSpan = 10.0f; _expired = false; }
 };
 
 #endif //COMETA_OBSTACLE_SCRIPT_H
