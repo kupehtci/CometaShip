@@ -25,7 +25,7 @@ private:
 
     void InitializeGameWorld();
     void InitImGui();
-    void SetupLightsAndEnvironment();
+    // void SetupLightsAndEnvironment();
     void SpawnObstacle();
     void ResetGame();
     void UpdateScore(int points);
@@ -39,6 +39,7 @@ private:
     void ExitGame();
     void ShowControls() { _showControls = true; }
     void ShowHighScores() { _showHighScores = true; }
+    void RenderGameplayHUD();
 
     Camera _camera;
     bool _gameRunning = false;
@@ -47,6 +48,7 @@ private:
     float _obstacleSpawnInterval = 2.0f;
     int _score = 0;
     uint32_t _playerShipId;
+    Entity* _playerShip = nullptr;
 
     // Menu state
     GameState _currentState = GameState::MENU;
@@ -58,6 +60,7 @@ private:
 
     // Objects properties
     glm::vec3 _playerShipPosition = glm::vec3(0.0f, -1.0f, -5.0f);
+    int _playerHealth = 3; // Default health, adjust as needed
 
     // --- Obstacle Pool ---
     std::vector<Entity*> _obstaclePool;

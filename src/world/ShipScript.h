@@ -13,6 +13,7 @@ private:
     float _moveSpeed = 3.0f;      
     float _moveBounds = 5.0f;       
     bool _isAlive = true;
+    unsigned int _lives = 3;
     
 public:
     ShipScript() = default;
@@ -62,7 +63,18 @@ public:
         Tag* otherTag = other->GetComponent<Tag>();
         if (otherTag && otherTag->GetTag() == "obstacle") {
             COMETA_MSG("[SHIP SCRIPT] Hit by obstacle!");
-            _isAlive = false;
+            
+            // Decrease lives
+            if (_lives > 0) {
+                _lives--;
+                COMETA_MSG("[SHIP SCRIPT] Lives left: " << _lives);
+            }   
+            if (_lives == 0) {
+                _isAlive = false;
+                COMETA_MSG("[SHIP SCRIPT] Ship destroyed!");
+            } else {
+                COMETA_MSG("[SHIP SCRIPT] Ship hit, but still alive.");
+            }
             
             // Visual feedback - turn the ship red
             MeshRenderable* renderable = _entity->GetComponent<MeshRenderable>();
@@ -83,6 +95,9 @@ public:
     
     Entity* GetOwner() const { return _entity; }
     void SetOwner(Entity* entity) { _entity = entity; }
+
+    unsigned int GetLives() const { return _lives; }
+    void SetLives(unsigned int lives) { _lives = lives; }
 };
 
 #endif //COMETA_SHIP_SCRIPT_H

@@ -170,25 +170,25 @@ void ShipGameLayer::InitializeGameWorld() {
     std::shared_ptr<World> gameWorld = WorldManagerRef->GetWorld(0);
     gameWorld->SetCamera(&_camera);
     
-    Entity* playerShip = gameWorld->CreateEntity("PlayerShip");
-    _playerShipId = playerShip->GetUID();
+    _playerShip = gameWorld->CreateEntity("PlayerShip");
+    _playerShipId = _playerShip->GetUID();
     
 
-    Transform* shipTransform = playerShip->GetComponent<Transform>();
+    Transform* shipTransform = _playerShip->GetComponent<Transform>();
     shipTransform->position = _playerShipPosition;
     shipTransform->scale = glm::vec3(1.0f, 0.2f, 0.5f);
     
     // Add collider to player ship
-    ColliderComponent* shipCollider = playerShip->CreateComponent<ColliderComponent>();
+    ColliderComponent* shipCollider = _playerShip->CreateComponent<ColliderComponent>();
     shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 0.2f, 0.5f)); 
     
     // Add rigidbody to player ship
-    RigidBody* shipRb = playerShip->CreateComponent<RigidBody>();
+    RigidBody* shipRb = _playerShip->CreateComponent<RigidBody>();
     shipRb->SetMass(1.0f);
     shipRb->SetAffectedByGravity(false);
     
     // Add renderable component to player ship
-    MeshRenderable* shipRenderable = playerShip->CreateComponent<MeshRenderable>();
+    MeshRenderable* shipRenderable = _playerShip->CreateComponent<MeshRenderable>();
     
     // Create material for the ship
     std::shared_ptr<Material> shipMaterial = std::make_shared<Material>(
@@ -212,12 +212,12 @@ void ShipGameLayer::InitializeGameWorld() {
     shipRenderable->SetMesh(Mesh::CreateBox());
     
     // Add script component to player ship
-    Script* shipScript = playerShip->CreateComponent<Script>();
+    Script* shipScript = _playerShip->CreateComponent<Script>();
     shipScript->Attach<ShipScript>();
 
 
     // Add tag component to identify the player
-    Tag* shipTag = playerShip->CreateComponent<Tag>();
+    Tag* shipTag = _playerShip->CreateComponent<Tag>();
     shipTag->SetTag("player");
     
     // Create a directional light
@@ -282,42 +282,44 @@ void ShipGameLayer::InitializeGameWorld() {
     // SetupLightsAndEnvironment();
 }
 
-void ShipGameLayer::SetupLightsAndEnvironment() {
-    std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
+// void ShipGameLayer::SetupLightsAndEnvironment() {
+//     std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
     
-    Entity* lightEntity = gameWorld->CreateEntity("DirectionalLight");
-    DirectionalLight* dirLight = lightEntity->CreateComponent<DirectionalLight>();
-    dirLight->SetDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
+//     Entity* lightEntity = gameWorld->CreateEntity("DirectionalLight");
+//     DirectionalLight* dirLight = lightEntity->CreateComponent<DirectionalLight>();
+//     dirLight->SetDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
     
-    Entity* floor = gameWorld->CreateEntity("Floor");
-    floor->GetComponent<Transform>()->position = glm::vec3(0.0f, -2.0f, -10.0f);
-    floor->GetComponent<Transform>()->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-    floor->GetComponent<Transform>()->scale = glm::vec3(20.0f, 0.1f, 40.0f);
+//     Entity* floor = gameWorld->CreateEntity("Floor");
+//     floor->GetComponent<Transform>()->position = glm::vec3(0.0f, -2.0f, -10.0f);
+//     floor->GetComponent<Transform>()->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+//     floor->GetComponent<Transform>()->scale = glm::vec3(20.0f, 0.1f, 40.0f);
     
-    MeshRenderable* floorRenderable = floor->CreateComponent<MeshRenderable>();
-    floorRenderable->SetMesh(Mesh::CreateBox());
+//     MeshRenderable* floorRenderable = floor->CreateComponent<MeshRenderable>();
+//     floorRenderable->SetMesh(Mesh::CreateBox());
     
-    std::shared_ptr<Material> floorMaterial = std::make_shared<Material>(
-        glm::vec3(1.0f, 1.0f, 1.0f),
-        glm::vec3(0.2f, 0.2f, 0.2f),
-        glm::vec3(0.3f, 0.3f, 0.3f),
-        glm::vec3(0.1f, 0.1f, 0.1f),
-        8.0f,
-        "resources/isometric_cubes.jpg",
-        "resources/white.jpg",
-        "resources/black.jpg"
-    );
+//     std::shared_ptr<Material> floorMaterial = std::make_shared<Material>(
+//         glm::vec3(1.0f, 1.0f, 1.0f),
+//         glm::vec3(0.2f, 0.2f, 0.2f),
+//         glm::vec3(0.3f, 0.3f, 0.3f),
+//         glm::vec3(0.1f, 0.1f, 0.1f),
+//         8.0f,
+//         "resources/isometric_cubes.jpg",
+//         "resources/white.jpg",
+//         "resources/black.jpg"
+//     );
     
-    floorMaterial->LoadShader("Floor Shader", 
-        "src/render/shaders/blinn_phong_shader.vert", 
-        "src/render/shaders/blinn_phong_shader.frag");
+//     floorMaterial->LoadShader("Floor Shader", 
+//         "src/render/shaders/blinn_phong_shader.vert", 
+//         "src/render/shaders/blinn_phong_shader.frag");
     
-    floorRenderable->SetMaterial(floorMaterial);
-}
+//     floorRenderable->SetMaterial(floorMaterial);
+// }
 
 void ShipGameLayer::Update() {
     _camera.OnUpdate();
+
     float deltaTime = Time::GetDeltaTime();
+
     UpdateObstacles(deltaTime);
     switch (_currentState) {
         case GameState::MENU:
@@ -334,6 +336,14 @@ void ShipGameLayer::Update() {
                 }
                 UpdateScore(1);
             }
+            // Render HUD overlay
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+            RenderGameplayHUD();
+            ImGui::EndFrame();
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             break;
         case GameState::PAUSED:
             RenderPauseMenu();
@@ -442,6 +452,23 @@ void ShipGameLayer::RenderGameOverScreen() {
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void ShipGameLayer::RenderGameplayHUD() {
+    ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.5f);
+    ImGui::Begin("HUD", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+
+    auto shipScriptComponent = _playerShip->GetComponent<Script>(); 
+    auto shipScript = std::dynamic_pointer_cast<ShipScript>(shipScriptComponent->GetScript());
+    if(shipScript) {
+        _playerHealth = shipScript->GetLives();
+    }
+
+    ImGui::Text("Score: %d", _score);
+    ImGui::Separator();
+    ImGui::Text("Health: %d", _playerHealth);
+    ImGui::End();
 }
 
 void ShipGameLayer::StartGame() {
