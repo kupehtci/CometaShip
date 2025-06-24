@@ -34,3 +34,7 @@
 # Build folders
 bin/
 .idea/
+
+# Makefiles
+Makefile
+*.make

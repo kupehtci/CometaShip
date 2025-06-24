@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # Settle for macOS and windows
 # Define the OS of compilation by using "-t" flag followed by "macos", "windows" or "linux"
 
@@ -71,7 +72,7 @@ compile_for_macos_gmake () {
     echo "[BUILD] Transcription for MacOS using premake5 to GMake files"
     
     premake5 clean
-    premake5 gmake --cc=gcc --os=macosx
+    ./premake5 gmake --cc=gcc --os=macosx
 
     echo "[BUILD] Compiling MakeFiles"
     make config=debug
@@ -80,7 +81,7 @@ compile_for_macos_gmake () {
 
     #  take into account that needs to be called from here to set the current path from here
     #  If its called from inside the folder, the current path or called' path is going to be taken from the debug folder
-    bin/Debug/CometaGL
+    bin/Debug/CometaFramework
 }
 
 

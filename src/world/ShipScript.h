@@ -15,6 +15,10 @@ private:
     bool _isAlive = true;
     unsigned int _lives = 3;
     
+    // --- For red flash effect ---
+    bool _isRed = false;
+    float _redTimer = 0.0f;
+    
 public:
     ShipScript() = default;
     ~ShipScript() override = default;
@@ -25,6 +29,20 @@ public:
     
     void OnUpdate(float deltaTime) override {
         if (!_isAlive || !_entity) return;
+        
+        // Handle red flash timer
+        if (_isRed) {
+            _redTimer -= deltaTime;
+            if (_redTimer <= 0.0f) {
+                // Restore color
+                MeshRenderable* renderable = _entity->GetComponent<MeshRenderable>();
+                if (renderable && renderable->GetMaterial()) {
+                    renderable->GetMaterial()->SetAmbient(glm::vec3(0.1f, 0.1f, 0.8f));
+                    renderable->GetMaterial()->SetDiffuse(glm::vec3(0.2f, 0.2f, 0.9f));
+                }
+                _isRed = false;
+            }
+        }
         
         Transform* transform = _entity->GetComponent<Transform>();
         if (!transform) return;
@@ -67,7 +85,7 @@ public:
             // Decrease lives
             if (_lives > 0) {
                 _lives--;
-                COMETA_MSG("[SHIP SCRIPT] Lives left: " << _lives);
+                COMETA_MSG(std::string("[SHIP SCRIPT] Lives left: ") + std::to_string(_lives));
             }   
             if (_lives == 0) {
                 _isAlive = false;
@@ -76,11 +94,15 @@ public:
                 COMETA_MSG("[SHIP SCRIPT] Ship hit, but still alive.");
             }
             
-            // Visual feedback - turn the ship red
+            // Visual feedback by turning the ship red for 1 second
             MeshRenderable* renderable = _entity->GetComponent<MeshRenderable>();
             if (renderable && renderable->GetMaterial()) {
                 renderable->GetMaterial()->SetAmbient(glm::vec3(0.8f, 0.1f, 0.1f));
                 renderable->GetMaterial()->SetDiffuse(glm::vec3(0.9f, 0.2f, 0.2f));
+
+                COMETA_MSG("[SHIP SCRIPT] Ship hit, changing color to red for feedback.");
+                _isRed = true;
+                _redTimer = 1.0f;
             }
         }
     }

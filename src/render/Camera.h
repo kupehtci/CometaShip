@@ -1,6 +1,3 @@
-//
-// Created by Daniel Laplana Gimeno on 12/2/25.
-//
 
 #ifndef AURAGL_CAMERA_H
 #define AURAGL_CAMERA_H
@@ -65,6 +62,16 @@ public:
     [[nodiscard]] glm::mat4 GetViewMatrix() { return _viewMatrix;  }
     [[nodiscard]] glm::mat4 GetViewProyection() { return _projectionMatrix * _viewMatrix; }
 
+    // --------- SETTERS ---------
+    void SetPosition(const glm::vec3& position) { _position = position; }
+    void SetDirection(const glm::vec3& direction) { _direction = direction; }
+    void SetUp(const glm::vec3& up) { _up = up; }
+    void SetRight(const glm::vec3& right) { _right = right; }
+    void SetFov(float fov) { _fov = fov; }
+    void SetNear(float near) { _near = near; }
+    void SetFar(float far) { _far = far; }
+    void SetMovementSpeed(float speed) { _movementSpeed = speed; }
+    void SetSensitivity(float sensitivity) { _sensitivity = sensitivity; }
 };
 
 

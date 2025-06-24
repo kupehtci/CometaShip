@@ -1,6 +1,3 @@
-//
-// Created by Daniel Laplana Gimeno on 28/4/25.
-//
 
 #include "WorldManager.h"
 #include "ScriptSystem.h"

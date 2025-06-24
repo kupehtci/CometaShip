@@ -13,6 +13,7 @@
 #include "render/Texture.h"
 #include "render/Mesh.h"
 #include "render/Material.h"
+#include "render/Model.h"
 
 #include "physics/Collider.h"
 class Collision;
@@ -110,21 +111,55 @@ public:
 class MeshRenderable : public Component {
 private:
 	std::shared_ptr<Mesh> _mesh = nullptr;
+	std::vector<std::shared_ptr<Mesh>> _meshes; // Model loading meshes
 	std::shared_ptr<Material> _material = nullptr;
 
 public:
 	MeshRenderable() = default;
 	MeshRenderable(const MeshRenderable&) = default;
 
+	MeshRenderable& operator=(const MeshRenderable& other) {
+		if (this != &other) {
+			_meshes.clear();
+			_meshes = other._meshes;
+			_material = other._material;
+			if (!_meshes.empty()) {
+				_mesh = _meshes[0];
+			} else {
+				_mesh = nullptr;
+			}
+		}
+		return *this;
+	}
+
 	void Init() override {}
 
 	// Properties management methods
-
-	void SetMesh(const std::shared_ptr<Mesh>& mesh) { _mesh = mesh; }
+	void SetMesh(const std::shared_ptr<Mesh>& mesh) { _meshes.insert(_meshes.begin(), mesh); }
 	void SetMaterial(const std::shared_ptr<Material>& material) {_material = material;}
 
+	// Model loading
+	void LoadModel(const std::string& path) {
+		Model model(path);
+		_meshes.clear();
+
+		for (const auto& mesh : model.GetMeshes()) {
+			_meshes.push_back(mesh);
+			
+			std::shared_ptr<Material> meshMaterial = model.GetMeshMaterial(mesh);
+			if (meshMaterial) {
+				_material = meshMaterial;
+			}
+		}
+
+		if (!_meshes.empty()) {
+			_mesh = _meshes[0];
+		}
+	}
+
 	// ------------ GETTERS ------------
-	[[nodiscard]] std::shared_ptr<Mesh> GetMesh() const { return _mesh; }
+	[[nodiscard]] std::shared_ptr<Mesh> GetMesh() const { return _meshes[0]; }
+	[[nodiscard]] std::vector<std::shared_ptr<Mesh>> GetMeshes() const { return _meshes; }
 	[[nodiscard]] std::shared_ptr<Material> GetMaterial() const { return _material; }
 };
 
@@ -338,6 +373,7 @@ private:
 	glm::mat3 _inertiaTensor = glm::mat3();
 	glm::mat3 _inverseInertiaTensor = glm::mat3();
 
+	// Utils
 	bool _enabled = true;
 	bool _affectedByGravity = true;
 
@@ -348,13 +384,16 @@ public:
 		_force = { 0.0f, 0.0f, 0.0f };
 		_mass = 1.0f;
 
-		_enabled = true;
 
 		// Angular
 		_torque = { 0.0f, 0.0f, 0.0f };
 		_angularVelocity = { 0.0f, 0.0f, 0.0f };
 		_inertiaTensor = glm::mat3();
 		_inverseInertiaTensor = glm::mat3();
+
+		// Utils
+		_enabled = true;
+		_affectedByGravity = true;
 	}
 
 	RigidBody(const RigidBody&) = default;
@@ -410,7 +449,6 @@ public:
 class Script : public Component {
 private:
 	std::shared_ptr<BaseScript> _script = nullptr;
-
 public:
 	Script() = default;
 	Script(const Script&) = default;
@@ -486,8 +524,11 @@ public:
 		}
 	}
 
-	// Getters and setters
-	std::shared_ptr<BaseScript> GetScript() const { return _script; }
+	// ------------ GETTERS ------------
+ [[nodiscard]] std::shared_ptr<BaseScript> GetScript() const { return _script; }
+ [[nodiscard]] bool HasScript() const { return _script != nullptr; }
+ 
+
 };
 
 #endif

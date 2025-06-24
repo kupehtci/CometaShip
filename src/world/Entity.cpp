@@ -1,6 +1,7 @@
 #include "Entity.h"
 
-uint32_t Entity::AvailableUid = 1;
+uint32_t Entity::AvailableUid = static_cast<uint32_t>(0);
+
 
 Entity::Entity() {
     _uid = AvailableUid;

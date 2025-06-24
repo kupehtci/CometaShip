@@ -10,17 +10,17 @@ endif
 
 ifeq ($(config),debug)
   glad_config = debug
-  CometaGL_config = debug
+  CometaFramework_config = debug
 
 else ifeq ($(config),release)
   glad_config = release
-  CometaGL_config = release
+  CometaFramework_config = release
 
 else
   $(error "invalid configuration $(config)")
 endif
 
-PROJECTS := glad CometaGL
+PROJECTS := glad CometaFramework
 
 .PHONY: all clean help $(PROJECTS) 
 
@@ -32,15 +32,15 @@ ifneq (,$(glad_config))
 	@${MAKE} --no-print-directory -C vendor/glad -f Makefile config=$(glad_config)
 endif
 
-CometaGL: glad
-ifneq (,$(CometaGL_config))
-	@echo "==== Building CometaGL ($(CometaGL_config)) ===="
-	@${MAKE} --no-print-directory -C . -f CometaGL.make config=$(CometaGL_config)
+CometaFramework: glad
+ifneq (,$(CometaFramework_config))
+	@echo "==== Building CometaFramework ($(CometaFramework_config)) ===="
+	@${MAKE} --no-print-directory -C . -f CometaFramework.make config=$(CometaFramework_config)
 endif
 
 clean:
 	@${MAKE} --no-print-directory -C vendor/glad -f Makefile clean
-	@${MAKE} --no-print-directory -C . -f CometaGL.make clean
+	@${MAKE} --no-print-directory -C . -f CometaFramework.make clean
 
 help:
 	@echo "Usage: make [config=name] [target]"
@@ -53,6 +53,6 @@ help:
 	@echo "   all (default)"
 	@echo "   clean"
 	@echo "   glad"
-	@echo "   CometaGL"
+	@echo "   CometaFramework"
 	@echo ""
 	@echo "For more information, see https://github.com/premake/premake-core/wiki"

@@ -2,6 +2,7 @@
 #define COMETA_COMPONENT_STORAGE_H
 
 #include "types/SparseSet.h"
+#include "debug/Assertion.h"
 
 /**
  * Component storage is an Sparse Set that stores the object more efficiently than ordered maps <id, Entity>
@@ -31,10 +32,20 @@ public:
 			return this->Get(index);
 		}
 
-		// Increase dense and sparse capacity
-		if (this->_size >= this->_denseCapacity) {
-			this->_denseCapacity = this->_capacity = this->_denseCapacity * 2;
+		// Increase dense and dense Index capacity if full or about to be full
+		if (this->_size >= this->_denseCapacity - 1) {
+			this->_denseCapacity = this->_denseCapacity * 2;
 			this->_dense.resize(this->_denseCapacity);
+			this->_denseIndex.resize(this->_denseCapacity);
+			this->_capacity = this->_denseCapacity;
+			this->_sparse.resize(this->_capacity, -1);
+			COMETA_MSG("Increased dense capacity to: ", this->_denseCapacity);
+		}
+
+		// Increase sparse if index to insert is out of scope
+		while (this->_capacity <= index)
+		{
+			this->_capacity *= 2;
 			this->_sparse.resize(this->_capacity, -1);
 		}
 

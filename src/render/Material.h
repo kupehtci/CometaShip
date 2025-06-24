@@ -48,6 +48,7 @@ private:
     std::shared_ptr<Texture> _diffuseMap = nullptr;
     std::shared_ptr<Texture> _specularMap = nullptr;
     std::shared_ptr<Texture> _emissionMap = nullptr;
+    std::shared_ptr<Texture> _texture = nullptr;
 
     // checks
     bool _hasDiffuseMap = false;
@@ -106,6 +107,8 @@ public:
     void SetHasSpecularMap(bool value) {_hasSpecularMap = value; }
     void SetHasEmissionMap(bool value) {_hasEmissionMap = value; }
 
+    void SetTexture(std::shared_ptr<Texture> texture) { _texture = texture; }
+
     // --------- GETTERS ---------
     // Material properties getters
     [[nodiscard]] glm::vec3 GetColor() const { return _color; }
@@ -118,10 +121,12 @@ public:
     [[nodiscard]] inline std::shared_ptr<Texture> GetDiffuseMap() const { return _diffuseMap; }
     [[nodiscard]] inline std::shared_ptr<Texture> GetSpecularMap() const { return _specularMap; }
     [[nodiscard]] inline std::shared_ptr<Texture> GetEmissionMap() const { return _emissionMap; }
+    [[nodiscard]] inline std::shared_ptr<Texture> GetTexture() const { return _texture; }
 
     [[nodiscard]] inline bool HasDiffuseMap() const { return _hasDiffuseMap; }
     [[nodiscard]] inline bool HasSpecularMap() const { return _hasSpecularMap; }
     [[nodiscard]] inline bool HasEmissionMap() const { return _hasEmissionMap; }
+    [[nodiscard]] inline bool HasTexture() const { return _texture != nullptr; }
 
     // Shader getters
     [[nodiscard]] std::shared_ptr<Shader> GetShader() const { return _shader; }

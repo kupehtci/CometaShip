@@ -1,6 +1,3 @@
-//
-// Created by Daniel Laplana Gimeno on 12/2/25.
-//
 
 #include "Camera.h"
 #include "Window.h"

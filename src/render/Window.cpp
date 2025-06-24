@@ -1,6 +1,3 @@
-//
-// Created by Daniel Laplana Gimeno on 19/1/25.
-//
 #define GL_SILENCE_DEPRECATION
 
 #include "Window.h"
@@ -50,13 +47,9 @@ Window::~Window(){
 }
 
 void Window::Create(int width, int height, const char *title) {
-
-    // Store resolution parameters
     _resolution = {width, height};
     this->_title = title;
 
-
-    // Create a GLFW window
     this->_window = glfwCreateWindow(width,height, title, NULL, NULL);
 
     if (!_window) {
@@ -66,8 +59,8 @@ void Window::Create(int width, int height, const char *title) {
 
     glfwMakeContextCurrent(_window);
 
-    // Set Callbacks
 
+    // Set Callbacks
     glfwSetWindowSizeCallback(_window, HandleResizeCallback);
 
     glfwSetKeyCallback(_window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -145,14 +138,10 @@ void Window::Init() {
 
 
 void Window::Update() {
-    // Render();
 }
 
 
 void Window::SwapBuffers() {
-
-//    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Set background color
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);         // Clear the screen
 
     glfwSwapBuffers(_window);
     glfwPollEvents();
@@ -193,7 +182,8 @@ void Window::HandleResize(GLFWwindow* window, int width, int height) {
     // glfwGetWindowSize(_window, &_resolution->x, &_resolution->y);
     glm::ivec2 currentFramebufferSize = {};
     glfwGetFramebufferSize(_window, &currentFramebufferSize.x, &currentFramebufferSize.y);
-    
+
+    // Enable this method for checking resizing resolutions on console
     // COMETA_ASSERT(("Handling resize from " + std::to_string(previousResolution.x)  + ", " + std::to_string(previousResolution.y) + " to " + std::to_string(_resolution->x) + ", " + std::to_string(_resolution->y)).c_str());
 
     // modify viewport resolution

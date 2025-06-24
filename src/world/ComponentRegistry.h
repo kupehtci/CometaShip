@@ -73,6 +73,12 @@ public:
 		return GetStorage<T>().Get(uid);
 	}
 
+	/**
+	 * Checks if entity has the component
+	 * @tparam T Class of component to check if its contained by the entity
+	 * @param uid Unique ID of the entity to check the component for.
+	 * @return true if has the component, false otherwise
+	 */
 	template<typename T>
 	bool HasComponent(const uint32_t& uid) {
 		return GetStorage<T>().Contains(uid);
@@ -80,24 +86,13 @@ public:
 
 	/**
 	* Retrieve the storage for an specific type of component
+	* As its returned as reference, it allows to make component-wide operations.
+	* Take into account that ComponentStorage class containg begin() and end() methods, so for(each) can be done.
 	*/
 	template<typename T>
 	ComponentStorage<T>& GetStorage() {
 		return std::get<ComponentStorage<T>>(_components);
 	}
-
-	// inline void Debug()
-	// {
-	// 	std::cout << "=== ComponentRegistry ===" << std::endl;
-	// 	for (auto storage : _components)
-	// 	{
-	// 		std::cout << "StorageComponent type: " << typeid(storage).name() << "\n";
-	// 		for (auto it = storage.begin(); it != storage.end(); ++it)
-	// 		{
-	// 			std::cout << it->first << ": " << it->second << "\n";
-	// 		}
-	// 	}
-	// }
 };
 
 #endif // COMETA_COMPONENT_REGISTRY_H

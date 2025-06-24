@@ -1,3 +1,5 @@
+-- This script that can be called with ./premake5 clean, cleans up the build generations of the project
+-- useful for non-evolutive integrations or solving new integrations that doesnt get compiled
 newaction {
     trigger     = "clean",
     description = "clean the generated gmake files",

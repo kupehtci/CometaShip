@@ -1,6 +1,3 @@
-//
-// Created by Daniel Laplana Gimeno on 30/1/25.
-//
 
 #include "Shader.h"
 #include <filesystem>

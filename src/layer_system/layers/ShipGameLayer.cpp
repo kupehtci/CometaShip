@@ -161,9 +161,10 @@ void ShipGameLayer::InitializeGameWorld() {
     // Set up camera
     _camera = Camera();
     
-    glm::vec3 cameraPos = glm::vec3(0.0f, 2.0f, -5.0f);
-    _camera.GetPosition() = cameraPos;
+    glm::vec3 cameraPos = glm::vec3(0.0f, 2.0f, 2.0f);
+    _camera.SetPosition(cameraPos);
     _camera.OnUpdate();
+
 
     WorldManagerRef->CreateWorld(0);
     WorldManagerRef->SetCurrentWorld(0);
@@ -176,40 +177,21 @@ void ShipGameLayer::InitializeGameWorld() {
 
     Transform* shipTransform = _playerShip->GetComponent<Transform>();
     shipTransform->position = _playerShipPosition;
-    shipTransform->scale = glm::vec3(1.0f, 0.2f, 0.5f);
+    shipTransform->scale = glm::vec3(0.2f, 0.2f, 0.2f);
     
     // Add collider to player ship
     ColliderComponent* shipCollider = _playerShip->CreateComponent<ColliderComponent>();
-    shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 0.2f, 0.5f)); 
-    
+    shipCollider->SetCollider<BoxCollider>(glm::vec3(1.0f, 1.0f, 1.0f)); 
+
     // Add rigidbody to player ship
     RigidBody* shipRb = _playerShip->CreateComponent<RigidBody>();
     shipRb->SetMass(1.0f);
     shipRb->SetAffectedByGravity(false);
-    
-    // Add renderable component to player ship
-    MeshRenderable* shipRenderable = _playerShip->CreateComponent<MeshRenderable>();
-    
-    // Create material for the ship
-    std::shared_ptr<Material> shipMaterial = std::make_shared<Material>(
-        glm::vec3(1.0f, 1.0f, 1.0f),
-        glm::vec3(0.1f, 0.1f, 0.8f),
-        glm::vec3(0.2f, 0.2f, 0.9f),
-        glm::vec3(0.8f, 0.8f, 1.0f),
-        32.0f,
-        "resources/rocket_cometa.png",
-        "resources/white.jpg",
-        "resources/black.jpg"
-    );
-    
-    shipMaterial->LoadShader("Main Shader",
-        "src/render/shaders/blinn_phong_shader.vert",
-        "src/render/shaders/blinn_phong_shader.frag");
 
-    shipRenderable->SetMaterial(shipMaterial);
-    
-    // Create a box mesh for the ship
-    shipRenderable->SetMesh(Mesh::CreateBox());
+    // Set the player ship's renderable component with rocket loaded model
+    auto playerShipRenderable = _playerShip->CreateComponent<MeshRenderable>();
+    playerShipRenderable->LoadModel("resources/models/rocket/miiWeaponShell11.fbx");
+
     
     // Add script component to player ship
     Script* shipScript = _playerShip->CreateComponent<Script>();
@@ -240,7 +222,7 @@ void ShipGameLayer::InitializeGameWorld() {
         glm::vec3(0.3f, 0.3f, 0.3f),
         glm::vec3(0.1f, 0.1f, 0.1f),
         8.0f,
-        "resources/isometric_cubes.jpg",
+        "resources/space.jpg",
         "resources/white.jpg",
         "resources/black.jpg"
     );
@@ -626,7 +608,7 @@ void ShipGameLayer::UpdateObstacles(float deltaTime) {
 
 void ShipGameLayer::ResetGame() {
     _gameRunning = true;
-    _score = 0;
+    // _score = 0;
     _obstacleSpawnTimer = 0.0f;
     _obstacleSpawnInterval = 2.0f;
     _gameSpeed = 5.0f;
@@ -637,26 +619,27 @@ void ShipGameLayer::ResetGame() {
     for (Entity* obstacle : _activeObstacles) {
         DeactivateObstacle(obstacle);
     }
+
     _activeObstacles.clear();
 
     // Reset player ship
-    Entity* playerShip = nullptr;
-    auto entities = gameWorld->GetEntities();
-    for (size_t i = 0; i < entities.Size(); i++) {
-        Entity* entity = entities.Get(entities.GetDenseIndex(i));
-        if (entity && entity->GetUID() == _playerShipId) {
-            playerShip = entity;
-            break;
-        }
-    }
+    // Entity* playerShip = nullptr;
+    // auto entities = gameWorld->GetEntities();
+    // for (size_t i = 0; i < entities.Size(); i++) {
+    //     Entity* entity = entities.Get(entities.GetDenseIndex(i));
+    //     if (entity && entity->GetUID() == _playerShipId) {
+    //         playerShip = entity;
+    //         break;
+    //     }
+    // }
     
-    if (playerShip) {
-        Transform* shipTransform = playerShip->GetComponent<Transform>();
+    if (_playerShip) {
+        Transform* shipTransform = _playerShip->GetComponent<Transform>();
         shipTransform->position = _playerShipPosition; 
         shipTransform->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
         // Reset physics
-        RigidBody* shipRb = playerShip->GetComponent<RigidBody>();
+        RigidBody* shipRb = _playerShip->GetComponent<RigidBody>();
         if (shipRb) {
             shipRb->SetLinearVelocity(glm::vec3(0.0f, 0.0f, 0.0f));
             shipRb->SetAffectedByGravity(false);
@@ -665,7 +648,7 @@ void ShipGameLayer::ResetGame() {
         }
 
         // Reset script state
-        Script* shipScript = playerShip->GetComponent<Script>();
+        Script* shipScript = _playerShip->GetComponent<Script>();
         if (shipScript) {
             auto shipScriptInstance = std::dynamic_pointer_cast<ShipScript>(shipScript->GetScript());
             if (shipScriptInstance) {
@@ -674,7 +657,7 @@ void ShipGameLayer::ResetGame() {
         }
 
         // Reset visual appearance
-        MeshRenderable* renderable = playerShip->GetComponent<MeshRenderable>();
+        MeshRenderable* renderable = _playerShip->GetComponent<MeshRenderable>();
         if (renderable && renderable->GetMaterial()) {
             renderable->GetMaterial()->SetAmbient(glm::vec3(0.1f, 0.1f, 0.8f));
             renderable->GetMaterial()->SetDiffuse(glm::vec3(0.2f, 0.2f, 0.9f));

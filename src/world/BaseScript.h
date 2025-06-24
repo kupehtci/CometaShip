@@ -19,6 +19,7 @@ public:
 
     virtual void OnCollisionEnter(Entity* other, Collision* collision) = 0;
     virtual void OnCollisionExit(Entity* other, Collision* collision) = 0;
+
 };
 
 #endif //COMETA_BASE_SCRIPT_H

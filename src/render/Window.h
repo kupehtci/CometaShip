@@ -1,6 +1,3 @@
-//
-// Created by Daniel Laplana Gimeno on 19/1/25.
-//
 
 #ifndef AURAGL_WINDOW_H
 #define AURAGL_WINDOW_H
