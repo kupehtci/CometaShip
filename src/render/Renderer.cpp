@@ -323,10 +323,16 @@ void Renderer::Update(){
     {
         Transform* transform = renderable.GetOwner()->GetComponent<Transform>();
 
-        renderable.GetMaterial()->Bind();
-        // // RENDER_MESHES(renderable);
-        // renderable.GetMesh()->Bind();
-        // renderable.GetMesh()->Draw();
+        auto mat = renderable.GetMaterial(); 
+        // Check if the renderable has a valid material
+        if (mat == nullptr)
+        {
+            COMETA_ERROR("[Renderer] Renderable has no material assigned, skipping rendering");
+            continue;
+        }
+
+        mat->Bind();
+
 
         std::shared_ptr<Shader> shader = renderable.GetMaterial()->GetShader();
         shader->Bind();

@@ -148,6 +148,7 @@ public:
 
     unsigned int GetLives() const { return _lives; }
     void SetLives(unsigned int lives) { _lives = lives; }
+    void ResetLives() { _lives = 3; _isAlive = true; }
 };
 
 #endif //COMETA_SHIP_SCRIPT_H

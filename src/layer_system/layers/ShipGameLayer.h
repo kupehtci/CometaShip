@@ -41,6 +41,12 @@ private:
     void ShowHighScores() { _showHighScores = true; }
     void RenderGameplayHUD();
 
+    void ResetScore() {
+        _score = 0;
+        _showScorePopup = false;
+        _scorePopupTimer = 0.0f;
+    }
+
     Camera _camera;
     bool _gameRunning = false;
     float _gameSpeed = 1.0f;
@@ -57,6 +63,10 @@ private:
     int _selectedMenuItem = 0;
     static const int NUM_MENU_ITEMS = 4;
     unsigned int _obstacleCounter = 0; 
+
+    // Timer and boolean for score popup
+    bool _showScorePopup = false; 
+    float _scorePopupTimer = 0.0f; 
 
     // Objects properties
     glm::vec3 _playerShipPosition = glm::vec3(0.0f, -1.0f, -5.0f);

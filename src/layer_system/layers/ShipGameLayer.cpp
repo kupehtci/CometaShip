@@ -259,56 +259,42 @@ void ShipGameLayer::InitializeGameWorld() {
     // Subscribe to input events
     EventBus::GetInstancePtr()->Subscribe(EventType::COMETA_KEY_PRESS_EVENT, this);
     EventBus::GetInstancePtr()->Subscribe(EventType::COMETA_KEY_RELEASE_EVENT, this);
-    
-    // Create lights and floor
-    // SetupLightsAndEnvironment();
+
 }
 
-// void ShipGameLayer::SetupLightsAndEnvironment() {
-//     std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
-    
-//     Entity* lightEntity = gameWorld->CreateEntity("DirectionalLight");
-//     DirectionalLight* dirLight = lightEntity->CreateComponent<DirectionalLight>();
-//     dirLight->SetDirection(glm::vec3(-0.2f, -1.0f, -0.3f));
-    
-//     Entity* floor = gameWorld->CreateEntity("Floor");
-//     floor->GetComponent<Transform>()->position = glm::vec3(0.0f, -2.0f, -10.0f);
-//     floor->GetComponent<Transform>()->rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-//     floor->GetComponent<Transform>()->scale = glm::vec3(20.0f, 0.1f, 40.0f);
-    
-//     MeshRenderable* floorRenderable = floor->CreateComponent<MeshRenderable>();
-//     floorRenderable->SetMesh(Mesh::CreateBox());
-    
-//     std::shared_ptr<Material> floorMaterial = std::make_shared<Material>(
-//         glm::vec3(1.0f, 1.0f, 1.0f),
-//         glm::vec3(0.2f, 0.2f, 0.2f),
-//         glm::vec3(0.3f, 0.3f, 0.3f),
-//         glm::vec3(0.1f, 0.1f, 0.1f),
-//         8.0f,
-//         "resources/isometric_cubes.jpg",
-//         "resources/white.jpg",
-//         "resources/black.jpg"
-//     );
-    
-//     floorMaterial->LoadShader("Floor Shader", 
-//         "src/render/shaders/blinn_phong_shader.vert", 
-//         "src/render/shaders/blinn_phong_shader.frag");
-    
-//     floorRenderable->SetMaterial(floorMaterial);
-// }
 
 void ShipGameLayer::Update() {
     _camera.OnUpdate();
-
     float deltaTime = Time::GetDeltaTime();
-
     UpdateObstacles(deltaTime);
+
+
+
+    // --- Score popup/delayed increment logic ---
+    static float _scoreDelayTimer = 0.0f;
+    _scoreDelayTimer += deltaTime;
+    if (!_showScorePopup && _scoreDelayTimer >= 2.0f) {
+        _showScorePopup = true;
+        _scorePopupTimer = 1.0f;
+    }
+    if (_showScorePopup) {
+        _scorePopupTimer -= deltaTime;
+        if (_scorePopupTimer <= 0.0f) {
+            UpdateScore(10);
+            _showScorePopup = false;
+            _scoreDelayTimer = 0.0f;
+        }
+    }
+    // --- End of score popup logic ---
+
     switch (_currentState) {
         case GameState::MENU:
             RenderMenu();
             break;
         case GameState::PLAYING:
             if (_gameRunning) {
+
+                // Update obstacles spawn timer
                 _obstacleSpawnTimer += deltaTime;
                 if (_obstacleSpawnTimer >= _obstacleSpawnInterval) {
                     SpawnObstacle();
@@ -316,8 +302,21 @@ void ShipGameLayer::Update() {
                     _gameSpeed += 0.001f;
                     _obstacleSpawnInterval = std::max(0.5f, _obstacleSpawnInterval - 0.02f);
                 }
-                UpdateScore(1);
             }
+
+            // --- Check for Game Over ---
+            if (_playerShip) {
+                auto shipScriptComponent = _playerShip->GetComponent<Script>();
+                if (shipScriptComponent) {
+                    auto shipScript = std::dynamic_pointer_cast<ShipScript>(shipScriptComponent->GetScript());
+                    if (shipScript && (!shipScript->IsAlive() || shipScript->GetLives() == 0)) {
+                        _currentState = GameState::GAME_OVER;
+                        _gameRunning = false;
+                    }
+                }
+            }
+            // --- End Game Over check ---
+
             // Render HUD overlay
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
@@ -415,23 +414,47 @@ void ShipGameLayer::RenderPauseMenu() {
 }
 
 void ShipGameLayer::RenderGameOverScreen() {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
     ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    
+    ImGui::SetNextWindowSize(ImVec2(350, 250), ImGuiCond_Always);
     ImGui::Begin("Game Over", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-    ImGui::Text("Game Over!");
-    ImGui::Text("Score: %d", _score);
-    
-    if (ImGui::Button("Try Again")) {
+    ImGui::Text("\n   GAME OVER!");
+    ImGui::Separator();
+    ImGui::Text("Final Score: %d", _score);
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::Text("What would you like to do?");
+    ImGui::Spacing();
+    if (ImGui::Button("Try Again", ImVec2(320, 40))) {
+        auto shipScriptComponent = _playerShip->GetComponent<Script>();
+        auto shipScript = std::dynamic_pointer_cast<ShipScript>(shipScriptComponent->GetScript());
+        if (shipScript) {
+            shipScript->ResetLives();
+        }
+
         ResetGame();
+        ResetScore();
         _currentState = GameState::PLAYING;
     }
-    
-    if (ImGui::Button("Return to Main Menu")) {
+    if (ImGui::Button("Return to Main Menu", ImVec2(320, 40))) {
+        
+        auto shipScriptComponent = _playerShip->GetComponent<Script>();
+        auto shipScript = std::dynamic_pointer_cast<ShipScript>(shipScriptComponent->GetScript());
+        if (shipScript) {
+            shipScript->ResetLives();
+        }
+        ResetGame();
+        ResetScore();
+
         _currentState = GameState::MENU;
     }
-    
-    ImGui::End();
 
+    ImGui::Spacing();
+    ImGui::Text("Press ESC to exit the game.");
+    ImGui::End();
+    ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
@@ -450,6 +473,10 @@ void ShipGameLayer::RenderGameplayHUD() {
     }
 
     ImGui::Text("Score: %d", _score);
+    if (_showScorePopup) {
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(0.0f, 0.6f, 0.0f, 1.0f), "+10");
+    }
     ImGui::Separator();
     ImGui::Text("Health: %d", _playerHealth);
     ImGui::End();
@@ -523,37 +550,50 @@ void ShipGameLayer::Close() {
     _gameRunning = false;
 }
 
+/**
+ * Initialize the obstacle pool with a fixed number of obstacles
+ * This creates a pool of inactive obstacles that can be reused
+ * when new obstacles are needed
+ */
 void ShipGameLayer::InitializeObstaclePool() {
+    
     std::shared_ptr<World> gameWorld = WorldManagerRef->GetCurrentWorld();
     _obstaclePool.clear();
     _activeObstacles.clear();
+
     for (size_t i = 0; i < _obstaclePoolSize; ++i) {
         Entity* obstacle = gameWorld->CreateEntity("ObstaclePool_" + std::to_string(i));
         Transform* obstacleTransform = obstacle->GetComponent<Transform>();
         obstacleTransform->position = glm::vec3(1000.0f, 1000.0f, 1000.0f); // Move off-screen
         obstacleTransform->scale = glm::vec3(1.0f);
+
         ColliderComponent* obstacleCollider = obstacle->CreateComponent<ColliderComponent>();
         obstacleCollider->SetCollider<BoxCollider>(obstacleTransform->scale);
         RigidBody* obstacleRb = obstacle->CreateComponent<RigidBody>();
+
         obstacleRb->SetAffectedByGravity(false);
         obstacleRb->SetMass(1.0f);
         obstacleRb->SetLinearVelocity(glm::vec3(0.0f));
         MeshRenderable* obstacleRenderable = obstacle->CreateComponent<MeshRenderable>();
-        std::shared_ptr<Material> obstacleMaterial = std::make_shared<Material>(
-            glm::vec3(1.0f, 1.0f, 1.0f),
-            glm::vec3(0.8f, 0.1f, 0.1f),
-            glm::vec3(0.9f, 0.2f, 0.2f),
-            glm::vec3(1.0f, 0.6f, 0.6f),
-            16.0f,
-            "resources/white.jpg",
-            "resources/white.jpg",
-            "resources/black.jpg"
-        );
-        obstacleMaterial->LoadShader("Obstacle Shader", 
-            "src/render/shaders/blinn_phong_shader.vert", 
-            "src/render/shaders/blinn_phong_shader.frag");
-        obstacleRenderable->SetMaterial(obstacleMaterial);
-        obstacleRenderable->SetMesh(Mesh::CreateBox());
+
+        // std::shared_ptr<Material> obstacleMaterial = std::make_shared<Material>(
+        //     glm::vec3(1.0f, 1.0f, 1.0f),
+        //     glm::vec3(0.8f, 0.1f, 0.1f),
+        //     glm::vec3(0.9f, 0.2f, 0.2f),
+        //     glm::vec3(1.0f, 0.6f, 0.6f),
+        //     16.0f,
+        //     "resources/white.jpg",
+        //     "resources/white.jpg",
+        //     "resources/black.jpg"
+        // );
+        // obstacleMaterial->LoadShader("Obstacle Shader", 
+        //     "src/render/shaders/blinn_phong_shader.vert", 
+        //     "src/render/shaders/blinn_phong_shader.frag");
+            
+        // obstacleRenderable->SetMaterial(obstacleMaterial);
+        // obstacleRenderable->SetMesh(Mesh::CreateBox());
+        obstacleRenderable->LoadModel("resources/models/Rock/ObjRock.fbx");
+
         Script* obstacleScript = obstacle->CreateComponent<Script>();
         obstacleScript->Attach<ObstacleScript>(_gameSpeed);
         Tag* obstacleTag = obstacle->CreateComponent<Tag>();
@@ -573,20 +613,27 @@ Entity* ShipGameLayer::GetPooledObstacle() {
     return obstacle;
 }
 
+/**
+ * Deactivate an obstacle by moving it out of screen and resetting its state
+ * This allows the obstacle to be reused later in the pool
+ */
 void ShipGameLayer::DeactivateObstacle(Entity* obstacle) {
     if (!obstacle) return;
-    // Move off-screen and reset velocity
+    // Move outside the screen and reset velocity
     Transform* t = obstacle->GetComponent<Transform>();
     if (t) t->position = glm::vec3(1000.0f, 1000.0f, 1000.0f);
     RigidBody* rb = obstacle->GetComponent<RigidBody>();
     if (rb) rb->SetLinearVelocity(glm::vec3(0.0f));
+
     // Mark as inactive
     obstacle->SetName("inactive");
+    
     // Remove from active list
     auto it = std::find(_activeObstacles.begin(), _activeObstacles.end(), obstacle);
     if (it != _activeObstacles.end()) _activeObstacles.erase(it);
     _obstaclePool.push_back(obstacle);
 }
+
 
 void ShipGameLayer::UpdateObstacles(float deltaTime) {
     for (auto it = _activeObstacles.begin(); it != _activeObstacles.end(); ) {
@@ -626,16 +673,6 @@ void ShipGameLayer::ResetGame() {
 
     _activeObstacles.clear();
 
-    // Reset player ship
-    // Entity* playerShip = nullptr;
-    // auto entities = gameWorld->GetEntities();
-    // for (size_t i = 0; i < entities.Size(); i++) {
-    //     Entity* entity = entities.Get(entities.GetDenseIndex(i));
-    //     if (entity && entity->GetUID() == _playerShipId) {
-    //         playerShip = entity;
-    //         break;
-    //     }
-    // }
     
     if (_playerShip) {
         Transform* shipTransform = _playerShip->GetComponent<Transform>();
