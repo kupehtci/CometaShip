@@ -77,7 +77,7 @@ public:
             // Visual feedback - make the obstacle brighter
             MeshRenderable* renderable = _entity->GetComponent<MeshRenderable>();
             if (renderable && renderable->GetMaterial()) {
-                renderable->GetMaterial()->SetAmbient(glm::vec3(1.0f, 0.5f, 0.0f));
+                renderable->GetMaterial()->SetAmbient(glm::vec3(0.0f, 0.8f, 0.0f));
                 renderable->GetMaterial()->SetDiffuse(glm::vec3(1.0f, 0.7f, 0.0f));
                 renderable->GetMaterial()->SetSpecular(glm::vec3(1.0f, 0.9f, 0.5f));
             }

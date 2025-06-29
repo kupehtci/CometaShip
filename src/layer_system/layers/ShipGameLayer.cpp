@@ -670,8 +670,17 @@ void ShipGameLayer::ResetGame() {
     for (Entity* obstacle : _activeObstacles) {
         DeactivateObstacle(obstacle);
     }
-
     _activeObstacles.clear();
+
+    for(Entity* obstacle : _obstaclePool) {
+        auto obsScript = obstacle->GetComponent<Script>();
+        if (obsScript) {
+            auto obsScriptInstance = std::dynamic_pointer_cast<ObstacleScript>(obsScript->GetScript());
+            if (obsScriptInstance) {
+                obsScriptInstance->Reset(5.0f); 
+            }
+        }
+    }
 
     
     if (_playerShip) {
@@ -728,7 +737,7 @@ void ShipGameLayer::SpawnObstacle() {
     float scaleY = 0.5f + static_cast<float>(rand() % 100) / 100.0f;
     obstacleTransform->scale = glm::vec3(scaleX, scaleY, 0.5f);
     ColliderComponent* obstacleCollider = obstacle->GetComponent<ColliderComponent>();
-    obstacleCollider->SetCollider<BoxCollider>(obstacleTransform->scale);
+    obstacleCollider->SetCollider<BoxCollider>(obstacleTransform->scale * 0.8f);
     RigidBody* obstacleRb = obstacle->GetComponent<RigidBody>();
 
 

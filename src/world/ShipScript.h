@@ -14,7 +14,11 @@ private:
     float _moveBounds = 5.0f;       
     bool _isAlive = true;
     unsigned int _lives = 3;
-    
+    // Timer for dealing damage
+    // This can be used to control the timer when the ship cannot take damage
+    float _dealDamageTimer = 0.0f;
+    float _dealDamageTimerMax = 3.0f;
+
     // --- For red flash effect ---
     bool _isRed = false;
     float _redTimer = 0.0f;
@@ -24,6 +28,7 @@ private:
     float _currentTilt = 0.0f;
     float _tiltAmount = 20.0f; // degrees
     float _tiltLerpSpeed = 8.0f;
+
 
     // --- Gamepad support ---
     CometaJoystick _gamepadJoystick = CometaJoystick::JOYSTICK_1;
@@ -53,6 +58,12 @@ public:
                 _isRed = false;
             }
         }
+
+        // Update damage timer
+        _dealDamageTimer -= deltaTime;
+        if (_dealDamageTimer < 0.0f) {
+            _dealDamageTimer = 0.0f; 
+        }
         
         Transform* transform = _entity->GetComponent<Transform>();
         if (!transform) return;
@@ -75,17 +86,29 @@ public:
 
         
         // --- Tilting logic ---
-        if (moveX < 0.0f) {
-            _targetTilt = _tiltAmount;
-        } else if (moveX > 0.0f) {
-            _targetTilt = -_tiltAmount;
-        } else {
-            _targetTilt = 0.0f;
+        // Only allow tilting if angular velocity is below threshold (prevents spinning after collision)
+        float angularVelThreshold = 0.5f; // adjust as needed
+        RigidBody* rb = _entity->GetComponent<RigidBody>();
+        bool allowTilt = true;
+        if (rb) {
+            glm::vec3 angVel = rb->GetAngularVelocity();
+            if (glm::length(angVel) > angularVelThreshold) {
+                allowTilt = false;
+            }
         }
-        // Smoothly interpolate current tilt towards target tilt
-        _currentTilt += (_targetTilt - _currentTilt) * std::min(_tiltLerpSpeed * deltaTime, 1.0f);
+        if (allowTilt) {
+            if (moveX < 0.0f) {
+                _targetTilt = _tiltAmount;
+            } else if (moveX > 0.0f) {
+                _targetTilt = -_tiltAmount;
+            } else {
+                _targetTilt = 0.0f;
+            }
+            // Smoothly interpolate current tilt towards target tilt
+            _currentTilt += (_targetTilt - _currentTilt) * std::min(_tiltLerpSpeed * deltaTime, 1.0f);
+            transform->rotation.z = _currentTilt;
+        }
         
-        transform->rotation.z = _currentTilt;
         
         if (moveX != 0.0f) {
             float newX = transform->position.x + moveX * _moveSpeed * deltaTime;
@@ -111,9 +134,10 @@ public:
             COMETA_MSG("[SHIP SCRIPT] Hit by obstacle!");
             
             // Decrease lives
-            if (_lives > 0) {
+            if (_lives > 0 && _dealDamageTimer <= 0.5f) {
                 _lives--;
-                COMETA_MSG(std::string("[SHIP SCRIPT] Lives left: ") + std::to_string(_lives));
+                // Reset damage timer
+                _dealDamageTimer = _dealDamageTimerMax; 
             }   
             if (_lives == 0) {
                 _isAlive = false;
