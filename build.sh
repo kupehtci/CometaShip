@@ -71,7 +71,7 @@ compile_for_macos_gmake () {
 
     echo "[BUILD] Transcription for MacOS using premake5 to GMake files"
     
-    premake5 clean
+    # premake5 clean
     ./premake5 gmake --cc=gcc --os=macosx
 
     echo "[BUILD] Compiling MakeFiles"

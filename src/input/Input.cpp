@@ -62,6 +62,8 @@ void Input::Update() {
     }
 
     // Process events
+
+    // Gamepadd connection
 }
 
 void Input::Close() {

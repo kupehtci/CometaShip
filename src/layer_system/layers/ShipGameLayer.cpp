@@ -161,7 +161,7 @@ void ShipGameLayer::InitializeGameWorld() {
     // Set up camera
     _camera = Camera();
     
-    glm::vec3 cameraPos = glm::vec3(0.0f, 2.0f, 2.0f);
+    glm::vec3 cameraPos = glm::vec3(0.0f, 2.0f, 4.0f);
     _camera.SetPosition(cameraPos);
     _camera.OnUpdate();
 
@@ -181,7 +181,7 @@ void ShipGameLayer::InitializeGameWorld() {
     
     // Add collider to player ship
     ColliderComponent* shipCollider = _playerShip->CreateComponent<ColliderComponent>();
-    shipCollider->SetCollider<BoxCollider>(glm::vec3(0.4f, 0.8f, 0.4f)); 
+    shipCollider->SetCollider<BoxCollider>(glm::vec3(0.2f, 0.8f, 0.4f)); 
 
     // Add rigidbody to player ship
     RigidBody* shipRb = _playerShip->CreateComponent<RigidBody>();
@@ -223,7 +223,7 @@ void ShipGameLayer::InitializeGameWorld() {
         glm::vec3(0.1f, 0.1f, 0.1f),
         8.0f,
         "resources/space.jpg",
-        "resources/white.jpg",
+        "resources/black.jpg",
         "resources/black.jpg"
     );
     
@@ -438,7 +438,9 @@ void ShipGameLayer::RenderGameOverScreen() {
 
 void ShipGameLayer::RenderGameplayHUD() {
     ImGui::SetNextWindowPos(ImVec2(20, 20), ImGuiCond_Always);
-    ImGui::SetNextWindowBgAlpha(0.5f);
+    ImGui::SetNextWindowBgAlpha(1.0f);
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.0f, 1.0f, 1.0f, 1.0f)); // White background
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // Dark text
     ImGui::Begin("HUD", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
 
     auto shipScriptComponent = _playerShip->GetComponent<Script>(); 
@@ -451,6 +453,7 @@ void ShipGameLayer::RenderGameplayHUD() {
     ImGui::Separator();
     ImGui::Text("Health: %d", _playerHealth);
     ImGui::End();
+    ImGui::PopStyleColor(2);
 }
 
 void ShipGameLayer::StartGame() {
@@ -591,6 +594,7 @@ void ShipGameLayer::UpdateObstacles(float deltaTime) {
         bool deactivate = false;
         Transform* t = obstacle->GetComponent<Transform>();
         if (t && t->position.y < -20.0f) deactivate = true;
+
         // Check lifespan via ObstacleScript
         Script* script = obstacle->GetComponent<Script>();
         if (script) {
@@ -599,7 +603,7 @@ void ShipGameLayer::UpdateObstacles(float deltaTime) {
         }
         if (deactivate) {
             DeactivateObstacle(obstacle);
-            it = _activeObstacles.begin(); // List changed, restart
+            it = _activeObstacles.begin(); 
         } else {
             ++it;
         }
@@ -677,7 +681,7 @@ void ShipGameLayer::SpawnObstacle() {
     // Get player ship X position
     float shipX = _playerShipPosition.x;
     // Add a small random offset to X for variety
-    float randomOffset = static_cast<float>((rand() % 100) - 50) / 10.0f; // -5.0 to 5.0
+    float randomOffset = static_cast<float>((rand() % 100) - 50) / 10.0f; 
     float spawnX = shipX + randomOffset;
     float spawnY = 12.0f; // Above the visible area
     float spawnZ = _playerShipPosition.z; // Same Z as ship

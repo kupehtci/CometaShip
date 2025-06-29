@@ -24,6 +24,10 @@ private:
     float _currentTilt = 0.0f;
     float _tiltAmount = 20.0f; // degrees
     float _tiltLerpSpeed = 8.0f;
+
+    // --- Gamepad support ---
+    CometaJoystick _gamepadJoystick = CometaJoystick::JOYSTICK_1;
+    float _deadZone = 0.15f; 
     
 public:
     ShipScript() = default;
@@ -54,16 +58,21 @@ public:
         if (!transform) return;
         
         float moveX = 0.0f;
-        
+        // Keyboard movement
         if (Input::IsKeyPressed(GLFW_KEY_A) || Input::IsKeyPressed(GLFW_KEY_LEFT)) {
-            // COMETA_MSG("[SHIP SCRIPT] Moving left");
             moveX -= 1.0f;
         }
-        
         if (Input::IsKeyPressed(GLFW_KEY_D) || Input::IsKeyPressed(GLFW_KEY_RIGHT)) {
-            // COMETA_MSG("[SHIP SCRIPT] Moving right");
             moveX += 1.0f;
         }
+        // Gamepad left joystick movement (CometaJoystick 0, axis 0 = left stick X)
+        if (Input::IsJoystickConnected(JOYSTICK_1) && Input::IsJoystickAGamepad(JOYSTICK_1)) {
+            auto gamepadInfo = Input::GetGamepadInfo(CometaJoystick::JOYSTICK_1);
+            float axisX = gamepadInfo.axes[0];
+            if (fabs(axisX) > _deadZone) 
+                moveX += axisX;
+        }
+
         
         // --- Tilting logic ---
         if (moveX < 0.0f) {
