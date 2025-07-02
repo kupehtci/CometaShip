@@ -5,6 +5,11 @@
 #include <vector>
 #include "world/Entity.h"
 
+#include "imgui_internal.h"
+#include "misc/cpp/imgui_stdlib.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 class ShipGameLayer : public Layer {
 public:
     ShipGameLayer();
@@ -81,4 +86,26 @@ private:
     Entity* GetPooledObstacle();
     void DeactivateObstacle(Entity* obstacle);
     void UpdateObstacles(float deltaTime);
+
+
+    void MainRenderUI(); 
+    void BuildSceneHierarchyPanel();
+    void PushUIStyle(); 
+    void PushNormalStyle(); 
+
+    #pragma region PerformanceGraphs
+    static const int HISTORY_SIZE = 30;
+    float _fpsHistory[HISTORY_SIZE];
+    float _deltaTimeHistory[HISTORY_SIZE];
+    int _historyIndex;
+    float _plotUpdateTimer = 0.0f;
+    #pragma endregion
+
+    #pragma region ScriptEditor
+    bool _mainRenderUIActive = false;
+    bool _mainWindowOpen = true;
+    bool _sceneHierarchyOpen = true;
+    ImVec2 _thumbnailSize = ImVec2(128, 128);
+    bool isOnSimulation = false;
+    #pragma endregion 
 };

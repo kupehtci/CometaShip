@@ -45,8 +45,7 @@ void UILayer::Init()
     ImGui_ImplGlfw_InitForOpenGL(Renderer::GetInstancePtr()->GetWindow()->GetGlfwWindow(), true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
     ImGui_ImplOpenGL3_Init();
 
-    // Subscribe to events
-    EventBus::GetInstancePtr()->Subscribe(COMETA_KEY_PRESS_EVENT, this);
+    
 
 
     ImGuiStyle* style = &ImGui::GetStyle();
@@ -58,6 +57,7 @@ void UILayer::Init()
 
     style->WindowPadding = ImVec2(15, 15);
     style->WindowRounding = 5.0f;
+    style->WindowBorderHoverPadding = 4.0f;
     style->FramePadding = ImVec2(5, 5);
     style->FrameRounding = 4.0f;
     style->ItemSpacing = ImVec2(12, 8);
@@ -125,6 +125,9 @@ void UILayer::Init()
 
     // Set viewport
     // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
+    // Subscribe to events
+    // EventBus::GetInstancePtr()->Subscribe(COMETA_KEY_PRESS_EVENT, this);
 }
 
 void UILayer::Update()

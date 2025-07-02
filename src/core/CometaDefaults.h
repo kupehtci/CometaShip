@@ -5,7 +5,7 @@
 #ifndef COMETADEFAULTS_H
 #define COMETADEFAULTS_H
 
-constexpr unsigned int COMETA_DEFAULT_WIDTH = 1600;
-constexpr unsigned int COMETA_DEFAULT_HEIGHT = 900;
+constexpr unsigned int COMETA_DEFAULT_WIDTH = 1920;
+constexpr unsigned int COMETA_DEFAULT_HEIGHT = 1080;
 
 #endif //COMETADEFAULTS_H
